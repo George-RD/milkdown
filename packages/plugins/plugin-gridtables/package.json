@@ -1,0 +1,54 @@
+{
+  "name": "@milkdown/plugin-gridtables",
+  "type": "module",
+  "version": "7.15.5",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Milkdown/milkdown.git",
+    "directory": "packages/plugins/plugin-gridtables"
+  },
+  "keywords": [
+    "milkdown",
+    "milkdown plugin",
+    "table",
+    "grid tables"
+  ],
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "import": "./src/index.ts"
+    }
+  },
+  "main": "./src/index.ts",
+  "publishConfig": {
+    "main": "./lib/index.js",
+    "types": "./lib/index.d.ts",
+    "exports": {
+      ".": {
+        "import": "./lib/index.js",
+        "types": "./lib/index.d.ts"
+      }
+    }
+  },
+  "scripts": {
+    "build": "vite build"
+  },
+  "files": [
+    "lib",
+    "src"
+  ],
+  "dependencies": {
+    "@adobe/remark-gridtables": "^3.0.14",
+    "@milkdown/exception": "workspace:*",
+    "@milkdown/core": "workspace:*",
+    "@milkdown/ctx": "workspace:*",
+    "@milkdown/prose": "workspace:*",
+    "@milkdown/utils": "workspace:*",
+    "@milkdown/transformer": "workspace:*",
+    "tslib": "^2.8.1"
+  },
+  "devDependencies": {
+    "@milkdown/preset-commonmark": "workspace:*"
+  }
+}
