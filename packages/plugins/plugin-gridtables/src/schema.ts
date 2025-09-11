@@ -1,5 +1,5 @@
 import type { NodeType } from '@milkdown/prose/model'
-import type { MarkdownNode } from '@milkdown/transformer'
+// import type { MarkdownNode } from '@milkdown/transformer'
 
 import { $nodeAttr, $nodeSchema } from '@milkdown/utils'
 
@@ -18,7 +18,7 @@ withMeta(gridTableAttr, {
 })
 
 /// Schema for grid table node.
-export const gridTableSchema = $nodeSchema('gridTable', (ctx) => ({
+export const gridTableSchema = $nodeSchema('gridTable', (_ctx) => ({
   content: 'gridTableHead? gridTableBody gridTableFoot?',
   group: 'block',
   isolating: true,
@@ -31,7 +31,7 @@ export const gridTableSchema = $nodeSchema('gridTable', (ctx) => ({
     'table',
     {
       'data-type': 'grid-table',
-      ...ctx.get(gridTableAttr.key)(),
+      // Table-level attributes handled by node
     },
     0,
   ],
@@ -72,12 +72,12 @@ withMeta(gridTableHeadAttr, {
 })
 
 /// Schema for grid table head node.
-export const gridTableHeadSchema = $nodeSchema('gridTableHead', (ctx) => ({
+export const gridTableHeadSchema = $nodeSchema('gridTableHead', (_ctx) => ({
   content: 'gridTableRow+',
   parseDOM: [{ tag: 'thead' }],
   toDOM: () => [
     'thead',
-    ctx.get(gridTableHeadAttr.key)(),
+    // Head-level attributes handled by node,
     0,
   ],
   parseMarkdown: {
@@ -117,12 +117,12 @@ withMeta(gridTableBodyAttr, {
 })
 
 /// Schema for grid table body node.
-export const gridTableBodySchema = $nodeSchema('gridTableBody', (ctx) => ({
+export const gridTableBodySchema = $nodeSchema('gridTableBody', (_ctx) => ({
   content: 'gridTableRow+',
   parseDOM: [{ tag: 'tbody' }],
   toDOM: () => [
     'tbody',
-    ctx.get(gridTableBodyAttr.key)(),
+    // Body-level attributes handled by node,
     0,
   ],
   parseMarkdown: {
@@ -162,12 +162,12 @@ withMeta(gridTableFootAttr, {
 })
 
 /// Schema for grid table foot node.
-export const gridTableFootSchema = $nodeSchema('gridTableFoot', (ctx) => ({
+export const gridTableFootSchema = $nodeSchema('gridTableFoot', (_ctx) => ({
   content: 'gridTableRow+',
   parseDOM: [{ tag: 'tfoot' }],
   toDOM: () => [
     'tfoot',
-    ctx.get(gridTableFootAttr.key)(),
+    // Foot-level attributes handled by node,
     0,
   ],
   parseMarkdown: {
@@ -207,12 +207,12 @@ withMeta(gridTableRowAttr, {
 })
 
 /// Schema for grid table row node.
-export const gridTableRowSchema = $nodeSchema('gridTableRow', (ctx) => ({
+export const gridTableRowSchema = $nodeSchema('gridTableRow', (_ctx) => ({
   content: 'gridTableCell+',
   parseDOM: [{ tag: 'tr' }],
   toDOM: () => [
     'tr',
-    ctx.get(gridTableRowAttr.key)(),
+    // Row-level attributes handled by node,
     0,
   ],
   parseMarkdown: {

@@ -97,14 +97,14 @@ The **Grid Tables Plugin** is currently under development to implement all featu
 ### Development Instructions
 When asked to "continue with the grid tables plugin" or similar:
 
-1. **Check Progress**: Read `GRIDTABLES_PLUGIN_TRACKER.md` for current status
+1. **Check Progress**: Read `packages/plugins/plugin-gridtables/GRIDTABLES_PLUGIN_TRACKER.md` for current status
 2. **Run as Orchestrator**: Create sub-agents for specific tasks using the Task tool
 3. **Follow Standards**: 
-   - Adhere strictly to `PLUGIN_DEVELOPMENT_GUIDE.md`
+   - Adhere strictly to `packages/plugins/PLUGIN_DEVELOPMENT_GUIDE.md`
    - Match quality of existing plugins in `packages/plugins/`
    - No hacky fixes - proper solutions only
 4. **Update Documentation**: After each task completion:
-   - Update `GRIDTABLES_PLUGIN_TRACKER.md` with progress
+   - Update `packages/plugins/plugin-gridtables/GRIDTABLES_PLUGIN_TRACKER.md` with progress
    - Note how each task followed the development guide
    - Document any architectural decisions
 5. **Guide Updates**: If the development guide needs updates:
@@ -120,7 +120,7 @@ When asked to "continue with the grid tables plugin" or similar:
 - **Code Style**: Follow existing patterns exactly
 
 ### Current Phase Tracking
-See `GRIDTABLES_PLUGIN_TRACKER.md` for:
+See `packages/plugins/plugin-gridtables/GRIDTABLES_PLUGIN_TRACKER.md` for:
 - Current development phase
 - Completed tasks
 - Pending work
@@ -132,7 +132,7 @@ When creating sub-agents for grid tables development:
 ```
 Task: [Specific phase/task from tracker]
 Requirements:
-1. Follow PLUGIN_DEVELOPMENT_GUIDE.md patterns
+1. Follow packages/plugins/PLUGIN_DEVELOPMENT_GUIDE.md patterns
 2. Match existing plugin quality in packages/plugins/
 3. Document all decisions and code
 4. Report back with:

@@ -1075,9 +1075,102 @@ await editor.create()
 - Link editing interface
 - And many more...
 
-### Kit Package (Simplified Setup)
+### Kit Package (Unified API Access)
 
-The kit package provides simplified, opinionated setups for common use cases (currently minimal in this codebase).
+The **@milkdown/kit** package provides a unified API surface for all Milkdown packages, allowing developers to import everything from a single package without managing multiple dependencies.
+
+**When to integrate with kit**:
+- Your plugin is stable and widely useful
+- You want to provide the best developer experience
+- The plugin should be easily discoverable
+- It follows all development guide patterns
+
+**Kit Integration Pattern**:
+
+The kit package uses a simple re-export pattern where each plugin gets its own export path:
+
+```typescript
+// packages/kit/src/plugin/my-plugin.ts
+export * from '@milkdown/plugin-my-plugin'
+```
+
+**Package.json Integration**:
+
+Add your plugin to the kit's package.json in three places:
+
+1. **Dependencies**: Add the workspace dependency
+```json
+{
+  "dependencies": {
+    "@milkdown/plugin-my-plugin": "workspace:*"
+  }
+}
+```
+
+2. **Exports**: Add the export path
+```json
+{
+  "exports": {
+    "./plugin/my-plugin": "./src/plugin/my-plugin.ts"
+  },
+  "publishConfig": {
+    "exports": {
+      "./plugin/my-plugin": {
+        "types": "./lib/plugin/my-plugin.d.ts",
+        "import": "./lib/plugin/my-plugin.js"
+      }
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "plugin/my-plugin": ["lib/plugin/my-plugin.d.ts"]
+    }
+  }
+}
+```
+
+**Usage Examples**:
+
+After integration, developers can use your plugin via the kit:
+
+```typescript
+// Before: Multiple imports
+import { Editor } from '@milkdown/core'
+import { commonmark } from '@milkdown/preset-commonmark'
+import { myPlugin } from '@milkdown/plugin-my-plugin'
+
+// After: Unified kit imports
+import { Editor } from '@milkdown/kit/core'
+import { commonmark } from '@milkdown/kit/preset/commonmark'  
+import { myPlugin } from '@milkdown/kit/plugin/my-plugin'
+
+const editor = Editor.make()
+  .use(commonmark)
+  .use(myPlugin)
+  .create()
+```
+
+**Integration Categories**:
+
+- **Plugins**: `@milkdown/kit/plugin/[name]` - Core functionality plugins
+- **Presets**: `@milkdown/kit/preset/[name]` - Plugin bundles  
+- **Components**: `@milkdown/kit/component/[name]` - UI components
+- **Core APIs**: `@milkdown/kit/core`, `@milkdown/kit/utils`, etc.
+
+**Kit Integration Benefits**:
+- Single package dependency for users
+- Better tree-shaking and bundling
+- Consistent import patterns
+- Easier plugin discovery
+- Simplified dependency management
+
+**Integration Steps for Plugin Developers**:
+
+1. Create the re-export file in `packages/kit/src/plugin/[name].ts`
+2. Add dependency to `packages/kit/package.json`
+3. Add export paths to package.json (regular, publishConfig, typesVersions)
+4. Update any documentation to show kit import examples
+5. Test that build and imports work correctly
 
 ## Theme and Styling Patterns
 
