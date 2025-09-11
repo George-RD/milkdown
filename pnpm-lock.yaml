@@ -453,6 +453,9 @@ importers:
       '@milkdown/plugin-cursor':
         specifier: workspace:*
         version: link:../plugins/plugin-cursor
+      '@milkdown/plugin-gridtables':
+        specifier: workspace:*
+        version: link:../plugins/plugin-gridtables
       '@milkdown/plugin-history':
         specifier: workspace:*
         version: link:../plugins/plugin-history

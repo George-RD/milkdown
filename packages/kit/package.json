@@ -51,6 +51,7 @@
     "./plugin/tooltip": "./src/plugin/tooltip.ts",
     "./plugin/trailing": "./src/plugin/trailing.ts",
     "./plugin/upload": "./src/plugin/upload.ts",
+    "./plugin/gridtables": "./src/plugin/gridtables.ts",
     "./component": "./src/component/index.ts",
     "./component/code-block": "./src/component/code-block.ts",
     "./component/image-block": "./src/component/image-block.ts",
@@ -191,6 +192,10 @@
         "types": "./lib/plugin/upload.d.ts",
         "import": "./lib/plugin/upload.js"
       },
+      "./plugin/gridtables": {
+        "types": "./lib/plugin/gridtables.d.ts",
+        "import": "./lib/plugin/gridtables.js"
+      },
       "./component": {
         "types": "./lib/component/index.d.ts",
         "import": "./lib/component/index.js"
@@ -315,6 +320,9 @@
         "plugin/upload": [
           "lib/plugin/upload.d.ts"
         ],
+        "plugin/gridtables": [
+          "lib/plugin/gridtables.d.ts"
+        ],
         "component": [
           "lib/component/index.d.ts"
         ],
@@ -360,6 +368,7 @@
     "@milkdown/plugin-tooltip": "workspace:*",
     "@milkdown/plugin-trailing": "workspace:*",
     "@milkdown/plugin-upload": "workspace:*",
+    "@milkdown/plugin-gridtables": "workspace:*",
     "@milkdown/preset-commonmark": "workspace:*",
     "@milkdown/preset-gfm": "workspace:*",
     "@milkdown/prose": "workspace:*",

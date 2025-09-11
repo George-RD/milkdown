@@ -18,6 +18,10 @@ import {
   gridTableRowSchema,
   gridTableSchema,
 } from './schema'
+import { gridTableCommands } from './commands'
+import { gridTableKeymap } from './keymap'
+import { gridTableInputRules } from './input-rules'
+import { gridTableProseMirrorPlugins } from './prosemirror-plugin'
 import { withMeta } from './__internal__'
 
 /// Export schema types for external use
@@ -42,10 +46,35 @@ export {
   gridTableSchema,
 }
 
+/// Export all command components
+export {
+  insertGridTableCommand,
+  exitGridTableCommand,
+  goToNextGridCellCommand,
+  goToPrevGridCellCommand,
+  addGridRowAfterCommand,
+  addGridRowBeforeCommand,
+  deleteGridRowCommand,
+  addGridColumnAfterCommand,
+  addGridColumnBeforeCommand,
+  deleteGridColumnCommand,
+  setGridCellAlignCommand,
+  setGridCellVAlignCommand,
+  mergeGridCellRightCommand,
+  splitGridCellCommand,
+  isInGridTable,
+  createGridTable,
+} from './commands'
+
+/// Export keymap and input rules
+export { gridTableKeymap } from './keymap'
+export { gridTableInputRules } from './input-rules'
+export { gridTableProseMirrorPlugins } from './prosemirror-plugin'
+
 /// This plugin wraps [@adobe/remark-gridtables](https://github.com/adobe/remark-gridtables).
 export const remarkGridTablesPlugin = $remark(
   'remarkGridTables',
-  () => remarkGridTables as RemarkPluginRaw
+  () => remarkGridTables as RemarkPluginRaw<any>
 )
 
 withMeta(remarkGridTablesPlugin.plugin, {
@@ -78,4 +107,16 @@ export const gridTables: MilkdownPlugin[] = [
   gridTableFootSchema,
   gridTableRowSchema,
   gridTableCellSchema,
+  
+  // Commands for table manipulation
+  gridTableCommands,
+  
+  // Keyboard navigation
+  gridTableKeymap,
+  
+  // Input rules for table creation
+  gridTableInputRules,
+  
+  // ProseMirror plugins for enhanced functionality
+  gridTableProseMirrorPlugins,
 ].flat()
