@@ -81,7 +81,7 @@ export const gridTableHeadSchema = $nodeSchema('gridTableHead', (ctx) => ({
     0,
   ],
   parseMarkdown: {
-    match: (node) => node.type === 'gtHead',
+    match: (node) => node.type === 'gtHeader',
     runner: (state, node, type) => {
       state.openNode(type)
       state.next(node.children)
@@ -91,7 +91,7 @@ export const gridTableHeadSchema = $nodeSchema('gridTableHead', (ctx) => ({
   toMarkdown: {
     match: (node) => node.type.name === 'gridTableHead',
     runner: (state, node) => {
-      state.openNode('gtHead')
+      state.openNode('gtHeader')
       state.next(node.content)
       state.closeNode()
     },
@@ -171,7 +171,7 @@ export const gridTableFootSchema = $nodeSchema('gridTableFoot', (ctx) => ({
     0,
   ],
   parseMarkdown: {
-    match: (node) => node.type === 'gtFoot',
+    match: (node) => node.type === 'gtFooter',
     runner: (state, node, type) => {
       state.openNode(type)
       state.next(node.children)
@@ -181,7 +181,7 @@ export const gridTableFootSchema = $nodeSchema('gridTableFoot', (ctx) => ({
   toMarkdown: {
     match: (node) => node.type.name === 'gridTableFoot',
     runner: (state, node) => {
-      state.openNode('gtFoot')
+      state.openNode('gtFooter')
       state.next(node.content)
       state.closeNode()
     },
