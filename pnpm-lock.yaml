@@ -624,6 +624,37 @@ importers:
         specifier: workspace:*
         version: link:../preset-commonmark
 
+  packages/plugins/plugin-gridtables:
+    dependencies:
+      '@adobe/remark-gridtables':
+        specifier: ^3.0.14
+        version: 3.0.14
+      '@milkdown/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@milkdown/ctx':
+        specifier: workspace:*
+        version: link:../../ctx
+      '@milkdown/exception':
+        specifier: workspace:*
+        version: link:../../exception
+      '@milkdown/prose':
+        specifier: workspace:*
+        version: link:../../prose
+      '@milkdown/transformer':
+        specifier: workspace:*
+        version: link:../../transformer
+      '@milkdown/utils':
+        specifier: workspace:*
+        version: link:../../utils
+      tslib:
+        specifier: ^2.8.1
+        version: 2.8.1
+    devDependencies:
+      '@milkdown/preset-commonmark':
+        specifier: workspace:*
+        version: link:../preset-commonmark
+
   packages/plugins/plugin-highlight:
     dependencies:
       '@milkdown/core':
@@ -1005,6 +1036,15 @@ packages:
 
   '@adobe/css-tools@4.4.4':
     resolution: {integrity: sha512-Elp+iwUx5rN5+Y8xLt5/GRoG20WGoDCQ/1Fb+1LiGtvwbDavuSk0jhD/eZdckHAuzcDzccnkv+rEjyWfRx18gg==}
+
+  '@adobe/mdast-util-gridtables@4.0.13':
+    resolution: {integrity: sha512-FzneHnFA+YevJTNC2GWoq3cNzpLquwT2j1FsmzBwYEDLHeYnUaxuIzB3IbKH+sTe2Bm6Vincn/ZQDiO22QNZew==}
+
+  '@adobe/micromark-extension-gridtables@2.0.4':
+    resolution: {integrity: sha512-mzyRI2d0StuUv75VFnffYsHXRUo8J9RlK1EvjfmgHahwda1gNwe1Fqh4AYEZSWChf1HD/QBRcL6hEnxj9hedMg==}
+
+  '@adobe/remark-gridtables@3.0.14':
+    resolution: {integrity: sha512-XRVrc3o01zCdvUDiYMPNaYkeUeHocjz65Manqa9cHk1cz2hUYto+aVEiGJzf2ctKZtw1Onov26+BUyheEmn3rg==}
 
   '@alloc/quick-lru@5.2.0':
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
@@ -5291,6 +5331,31 @@ snapshots:
   '@actions/io@1.1.3': {}
 
   '@adobe/css-tools@4.4.4': {}
+
+  '@adobe/mdast-util-gridtables@4.0.13':
+    dependencies:
+      '@adobe/micromark-extension-gridtables': 2.0.4
+      mdast-util-from-markdown: 2.0.2
+      mdast-util-to-hast: 13.2.0
+      mdast-util-to-markdown: 2.1.2
+      unist-util-visit: 5.0.0
+    transitivePeerDependencies:
+      - supports-color
+
+  '@adobe/micromark-extension-gridtables@2.0.4':
+    dependencies:
+      micromark: 4.0.2
+      micromark-util-character: 2.1.1
+      micromark-util-symbol: 2.0.1
+    transitivePeerDependencies:
+      - supports-color
+
+  '@adobe/remark-gridtables@3.0.14':
+    dependencies:
+      '@adobe/mdast-util-gridtables': 4.0.13
+      '@adobe/micromark-extension-gridtables': 2.0.4
+    transitivePeerDependencies:
+      - supports-color
 
   '@alloc/quick-lru@5.2.0': {}
 
