@@ -2,6 +2,18 @@
 
 This comprehensive guide covers patterns and best practices for creating Milkdown plugins. Use this alongside the [official documentation](https://milkdown.dev/) to build plugins for the Milkdown ecosystem.
 
+## Quick Navigation
+
+- Start Here: [Plugin Overview](#plugin-architecture-overview)
+- Build Plugins: [Patterns](#plugin-development-patterns)
+- Parse & Serialize Markdown: [Transformer API](#the-transformer-api)
+- Custom Views & Services: [View Plugins](#4-view-plugins-custom-dom-rendering), [Service Plugins](#3-service-plugins-complex-business-logic)
+- Styling & Theming: [Theme and Styling](#theme-and-styling-patterns)
+- Storybook & Testing: [Storybook](#storybook-guidance) · [Testing](#testing-playbook-unit--e2e)
+- Planning & Scoping: [Planning a New Plugin](#planning-a-new-plugin)
+- Framework Integrations: [React/Vue](#framework-integration-patterns)
+- Debugging: [Inspector & withMeta](#debugging-and-development-tools)
+
 ## Plugin Architecture Overview
 
 Milkdown plugins are typically exported as arrays of composable pieces:
@@ -40,10 +52,13 @@ import { commandsCtx, schemaCtx, editorViewCtx } from '@milkdown/core'
 // ProseMirror APIs
 import { Plugin, PluginKey } from '@milkdown/prose/state'
 import { InputRule } from '@milkdown/prose/inputrules'
-import { NodeViewConstructor, MarkViewConstructor } from '@milkdown/prose/view'
+import type { NodeViewConstructor, MarkViewConstructor } from '@milkdown/prose/view'
 
 // Common debugging utility (add to plugins for better introspection)
-import { withMeta } from './__internal__'
+import { withMeta } from './__internal__/with-meta'
+
+// Optional: A tiny helper you can copy into your plugin at src/__internal__/with-meta.ts
+// See the "withMeta Helper" section below for details.
 ```
 
 ## Plugin Development Patterns
@@ -152,6 +167,16 @@ export const myBlockKeymap = $useKeymap('myBlockKeymap', {
       return () => commands.call(wrapInMyBlockCommand.key)
     },
   },
+})
+
+withMeta(myBlockKeymap.ctx, {
+  displayName: 'KeymapCtx<MyBlock>',
+  group: 'MyBlock',
+})
+
+withMeta(myBlockKeymap.shortcuts, {
+  displayName: 'Keymap<MyBlock>',
+  group: 'MyBlock',
 })
 
 // 6. Export the complete plugin
@@ -267,6 +292,16 @@ export const myMarkKeymap = $useKeymap('myMarkKeymap', {
   },
 })
 
+withMeta(myMarkKeymap.ctx, {
+  displayName: 'KeymapCtx<MyMark>',
+  group: 'MyMark',
+})
+
+withMeta(myMarkKeymap.shortcuts, {
+  displayName: 'Keymap<MyMark>',
+  group: 'MyMark',
+})
+
 export const myMark = [
   myMarkAttr,
   myMarkSchema,
@@ -288,6 +323,9 @@ export const myMark = [
 
 **Example Pattern** (based on block plugin):
 ```typescript
+import type { Ctx } from '@milkdown/ctx'
+import type { EditorView } from '@milkdown/prose/view'
+import type { PluginSpec } from '@milkdown/prose/state'
 import { Plugin, PluginKey } from '@milkdown/prose/state'
 import { $ctx, $prose } from '@milkdown/utils'
 
@@ -428,6 +466,7 @@ export const myCustomNodeWithView = [
 ```typescript
 import { $remark, $nodeSchema, $inputRule } from '@milkdown/utils'
 import { InputRule } from '@milkdown/prose/inputrules'
+import { visit } from 'unist-util-visit'
 
 // 1. Integrate with remark ecosystem
 export const remarkMyPlugin = $remark('remarkMyPlugin', () => {
@@ -817,6 +856,7 @@ import {
   contextNotFound,
   expectDomTypeError 
 } from '@milkdown/exception'
+import { ErrorCode, MilkdownError } from '@milkdown/exception'
 
 // Always check for missing schema elements
 const nodeType = ctx.get(schemaCtx).nodes[id]
@@ -833,7 +873,7 @@ getAttrs: (node) => {
 try {
   const config = ctx.get(myConfig.key)
 } catch (error) {
-  if (error.code === ErrorCode.contextNotFound) {
+  if (error instanceof MilkdownError && error.code === ErrorCode.contextNotFound) {
     // Use defaults or handle gracefully
   }
 }
@@ -848,7 +888,7 @@ This package re-exports ProseMirror modules with Milkdown-specific utilities.
 // Re-exports from ProseMirror packages
 import { Plugin, PluginKey } from '@milkdown/prose/state'
 import { InputRule } from '@milkdown/prose/inputrules' 
-import { NodeViewConstructor } from '@milkdown/prose/view'
+import type { NodeViewConstructor } from '@milkdown/prose/view'
 import { toggleMark, setBlockType } from '@milkdown/prose/commands'
 
 // Milkdown-specific utilities
@@ -861,10 +901,12 @@ import { markRule } from '@milkdown/prose'  // Enhanced mark input rules
 
 **Key Hooks**:
 ```typescript
-import { useEditor } from '@milkdown/integrations/react'
+import { Milkdown, MilkdownProvider, useEditor } from '@milkdown/integrations/react'
+import { Editor, defaultValueCtx, rootCtx, commandsCtx } from '@milkdown/core'
+import { commonmark } from '@milkdown/preset-commonmark'
 
 function MyEditor() {
-  const { editor, getInstance } = useEditor((root) =>
+  const { get } = useEditor((root) =>
     Editor.make()
       .config((ctx) => {
         ctx.set(rootCtx, root)
@@ -872,12 +914,30 @@ function MyEditor() {
       })
       .use(commonmark)
   )
-  
-  const handleClick = () => {
-    getInstance()?.action(callCommand(boldCommand.key))
+
+  const handleBold = () => {
+    const editor = get()
+    if (!editor) return
+    editor.action((ctx) => {
+      const commands = ctx.get(commandsCtx)
+      // commands.call(yourCommand.key)
+    })
   }
-  
-  return <div onClick={handleClick} ref={editor} />
+
+  return (
+    <>
+      <button onClick={handleBold}>Bold</button>
+      <Milkdown />
+    </>
+  )
+}
+
+export default function App() {
+  return (
+    <MilkdownProvider>
+      <MyEditor />
+    </MilkdownProvider>
+  )
 }
 ```
 
@@ -885,21 +945,31 @@ function MyEditor() {
 
 **Key Composables**:
 ```typescript
-import { useEditor } from '@milkdown/integrations/vue'
+import { Milkdown, MilkdownProvider, useEditor } from '@milkdown/integrations/vue'
+import { Editor, defaultValueCtx, rootCtx } from '@milkdown/core'
+import { commonmark } from '@milkdown/preset-commonmark'
+import { defineComponent } from 'vue'
 
-export default {
+const MyEditor = defineComponent({
   setup() {
-    const { editor, getInstance } = useEditor((root) =>
+    useEditor((root) =>
       Editor.make()
         .config((ctx) => {
           ctx.set(rootCtx, root)
+          ctx.set(defaultValueCtx, 'Hello **world**!')
         })
         .use(commonmark)
     )
-    
-    return { editor }
-  }
-}
+
+    return () => <Milkdown />
+  },
+})
+
+export default defineComponent({
+  setup() {
+    return () => <MilkdownProvider>{() => <MyEditor />}</MilkdownProvider>
+  },
+})
 ```
 
 ## Testing Your Plugins
@@ -985,7 +1055,7 @@ import {
   callCommand, 
   getMarkdown, 
   insert, 
-  getHtml,
+  getHTML,
   replaceAll,
   forceUpdate 
 } from '@milkdown/utils'
@@ -995,7 +1065,7 @@ editor.action(callCommand(boldCommand.key))
 
 // Content extraction
 const markdown = editor.action(getMarkdown())
-const html = editor.action(getHtml())
+const html = editor.action(getHTML())
 
 // Content insertion
 editor.action(insert('**New content**'))
@@ -1298,7 +1368,7 @@ const editor = await Editor.make().use(commonmark).create()
 
 // Add plugins dynamically
 if (needsTableSupport) {
-  await editor.use(gfm)
+  editor.use(gfm)
 }
 
 // Remove plugins when not needed
@@ -1374,3 +1444,182 @@ if (process.env.NODE_ENV === 'development') {
 ```
 
 This guide provides the foundation for creating robust, maintainable Milkdown plugins. Always refer to existing plugins in the codebase for real-world examples and consult the [official documentation](https://milkdown.dev/) for the latest API changes.
+
+## withMeta Helper
+
+Most first‑party packages add a package‑scoped withMeta helper to stamp consistent metadata for the inspector. Copy this into `src/__internal__/with-meta.ts` in your plugin package and import it wherever you call `withMeta()`.
+
+```ts
+import type { Meta, MilkdownPlugin } from '@milkdown/ctx'
+
+export function withMeta<T extends MilkdownPlugin>(
+  plugin: T,
+  meta: Partial<Meta> & Pick<Meta, 'displayName'>
+): T {
+  Object.assign(plugin, {
+    meta: {
+      package: '@milkdown/plugin-your-plugin',
+      ...meta,
+    },
+  })
+  return plugin
+}
+```
+
+Use it consistently on composables that benefit from clearer telemetry:
+- Schemas: `withMeta(myNodeSchema.node, { displayName: 'NodeSchema<myNode>' })`
+- Remark plugins: `withMeta(remarkFoo.plugin, { displayName: 'Remark<foo>' })`
+- Commands/InputRules
+- Keymaps: `withMeta(keymap.ctx, ...)` and `withMeta(keymap.shortcuts, ...)`
+
+Note: Do not apply withMeta() to composite arrays; apply to their individual members.
+
+## Plugin Styling
+
+Aim for minimal, theme‑friendly styling. Prefer attributes and classes that themes or users can target; avoid heavy runtime CSS injection.
+
+Recommended patterns
+- Use `$nodeAttr`/`$markAttr` to expose classes/data attributes for styling.
+  - Example: `data-type="grid-table"`, `class="md-grid-table"`.
+- For view plugins, add a stable container class and inner slots.
+  - Example: `.md-node-my-plugin`, `.md-node-my-plugin__content`.
+- Integrate with themes via `editorViewOptionsCtx` (already shown in Theme section) or by documenting required classes.
+- Keep CSS small; favor CSS variables or inherit from `.prose`.
+- Ship CSS only if necessary; otherwise document selectors so users can style via their theme.
+
+Storybook CSS
+- Place temporary styles for demos under `storybook/stories/components/*.css` or alongside the story and import them there. Do not couple demo CSS with published packages unless it’s essential.
+
+Example attributes via $nodeAttr
+```ts
+export const myBlockAttr = $nodeAttr('myBlock', () => ({
+  container: { class: 'md-node-my-block', 'data-type': 'my-block' },
+}))
+```
+
+## Storybook Guidance
+
+Storybook is the quickest way to iterate on parsing, rendering, and UX.
+
+Run
+- `pnpm start` launches the `@milkdown/storybook` instance on port 6006.
+
+Add a story
+- Place stories under `storybook/stories/plugins/[plugin].stories.ts`.
+- Use kit re‑exports (easiest for consumers): `@milkdown/kit/core`, `@milkdown/kit/preset/commonmark`, `@milkdown/kit/plugin/[name]`.
+
+Parsing order matters
+- Remark/syntax plugins often must load before presets that also touch the same syntax.
+- Example (Grid Tables): `.use(gridTables).use(commonmark)` to ensure grid table markdown parses.
+
+Provide valid sample markdown
+- Ensure `defaultValue` is valid for your plugin’s parser. Invalid samples lead to “unparsed markdown” showing in the DOM, which looks like broken parsing.
+- Include a simple sample and a complex sample to exercise edge cases.
+
+Minimal story template
+```ts
+import type { Meta, StoryObj } from '@storybook/html'
+import { Editor, defaultValueCtx, editorViewOptionsCtx, rootCtx } from '@milkdown/kit/core'
+import { commonmark } from '@milkdown/kit/preset/commonmark'
+import { myPlugin } from '@milkdown/kit/plugin/my-plugin'
+
+const meta: Meta = { title: 'Plugins/My Plugin' }
+export default meta
+type Story = StoryObj
+
+export const Basic: Story = {
+  render: () => {
+    const container = document.createElement('div')
+    const editor = Editor.make()
+      .config((ctx) => {
+        ctx.set(rootCtx, container)
+        ctx.set(defaultValueCtx, 'Your valid markdown here')
+        ctx.set(editorViewOptionsCtx, { editable: () => true })
+      })
+      .use(myPlugin)
+      .use(commonmark)
+    editor.create().catch(console.error)
+    return container
+  },
+}
+```
+
+Debugging in stories
+- Log DOM after create to verify parsed nodes exist.
+- Search for unparsed markers (e.g., `+---` in grid tables) in `root.textContent`.
+- Toggle readonly via `editorViewOptionsCtx` to test interactions.
+
+## Testing Playbook (Unit + E2E)
+
+Unit tests (Vitest)
+- Co‑locate `*.spec.ts` next to sources.
+- Use `Editor.make().use(commonmark).use(plugin)`; set `defaultValueCtx` to a precise sample.
+- Assertions
+  - DOM: query via `editorViewCtx`.
+  - Commands: call `editor.action((ctx) => ctx.get(commandsCtx).call(cmd.key, args))`.
+  - Round‑trip parse/serialize: set markdown → read back via serializer (or compare doc JSON).
+- Regex input rules: add targeted tests for boundaries to avoid matching in URLs/paths.
+
+Round‑trip example (pattern used in repo)
+```ts
+import { Editor, defaultValueCtx } from '@milkdown/core'
+import { commonmark } from '@milkdown/preset-commonmark'
+import { getMarkdown } from '@milkdown/utils'
+
+function createEditor() {
+  return Editor.make().use(commonmark).use(myPlugin)
+}
+
+async function roundTrip(input: string): Promise<string> {
+  const editor = createEditor()
+  editor.config((ctx) => ctx.set(defaultValueCtx, input.trim()))
+  await editor.create()
+  return editor.action(getMarkdown())
+}
+
+it('should preserve structure', async () => {
+  const output = await roundTrip('your markdown')
+  expect(output).toContain('expected token')
+})
+```
+
+E2E (Playwright)
+- Put scenarios in `e2e/tests`. Focus on realistic typing flows and keyboard shortcuts.
+- Prefer role/text selectors.
+
+Common pitfalls checklist
+- [ ] Plugin order for remark/syntax is correct.
+- [ ] `parseMarkdown.match` and `toMarkdown.match` align and are unique.
+- [ ] Attributes have `validate` where used.
+- [ ] Input rules don’t over‑match (use proper boundaries).
+- [ ] Keymaps defined via `$useKeymap` expose configurable shortcuts.
+- [ ] Storybook samples use valid markdown that exercises features.
+
+## Planning A New Plugin
+
+Use this scaffold to scope features and deliver incrementally.
+
+1) Classify the plugin
+- Schema plugin (node/mark), service plugin (ProseMirror Plugin), parser/syntax plugin (remark), or a composed set.
+
+2) Define minimal scope (MVP)
+- Markdown examples: 3–5 canonical inputs the plugin must support.
+- Core behaviors: parsing, minimal DOM, one key command, one input rule if applicable.
+- Serialization: ensure round‑trip for the canonical examples.
+
+3) Decide integration points
+- Context slices (`$ctx`) for config/state; attributes via `$nodeAttr/$markAttr`.
+- Keymaps via `$useKeymap` (with metadata on ctx/shortcuts), and commands via `$command`.
+- View needs (`$view`) if custom DOM/interaction is required.
+
+4) Phase 2 extensions
+- Additional commands, richer input rules, custom views, async services, UI components.
+
+5) Validation
+- Unit tests for parse/serialize, commands, input rules, and view updates.
+- Storybook with valid and edge‑case markdown.
+- Inspector enabled during development to confirm consumed/injected contexts and timers.
+
+Regex input rule tips
+- Use negative look‑behinds/aheads to avoid matching inside words, URLs, or file paths.
+- Mirror patterns used by existing marks (e.g., strong/strikethrough) and add tests.

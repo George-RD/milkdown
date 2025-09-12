@@ -113,9 +113,6 @@ export const gridTables: MilkdownPlugin[] = [
   // Keyboard navigation
   gridTableKeymap,
   
-  // Input rules for table creation
-  gridTableInputRules,
-  
   // ProseMirror plugins for enhanced functionality
   gridTableProseMirrorPlugins,
 ].flat()
