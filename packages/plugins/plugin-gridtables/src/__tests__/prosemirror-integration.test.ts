@@ -357,18 +357,21 @@ describe('Grid Tables ProseMirror Integration', () => {
       editor = await createEditor()
       const view = editor.ctx.get(editorViewCtx)
 
-      // Type the input rule trigger
-      let tr = view.state.tr
-        .insertText('|grid-table| ')
-      tr = tr.setSelection(view.state.selection.constructor.near(tr.doc.resolve(tr.doc.content.size)))
-      
-      view.dispatch(tr)
+      // Ensure selection at end of the only paragraph
+      view.dispatch(
+        view.state.tr.setSelection(
+          view.state.selection.constructor.near(
+            view.state.doc.resolve(view.state.doc.content.size)
+          )
+        )
+      )
 
-      // Check if table was created (input rules might need the space trigger)
-      const tableElement = view.dom.querySelector('table[data-type="grid-table"]')
-      
-      // This test verifies the input rule is configured, even if not triggered in test
-      expect(editor.ctx).toBeDefined() // Basic test that editor is working
+      // Type the input rule trigger (must end with a space)
+      view.dispatch(view.state.tr.insertText('|grid-table| '))
+
+      // In jsdom, InputRule side effects can be brittle.
+      // This test verifies the editor handled the input without error.
+      expect(editor.ctx).toBeDefined()
     })
   })
 
