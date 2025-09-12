@@ -1243,6 +1243,113 @@ const editor = Editor.make()
 5. Test that build and imports work correctly
 
 ## Theme and Styling Patterns
+## API Documentation (docs/api + builddocs)
+
+This project auto-generates API reference markdown from your TypeScript exports using a small templating tool (`builddocs`). To get your plugin’s API to show up correctly on the docs site, follow these steps.
+
+### Where to put docs
+- Location: `docs/api/plugin-<name>.md`
+- File name MUST match your package name without the `@milkdown/` prefix. For example:
+  - Package: `@milkdown/plugin-my-plugin`
+  - Doc file: `docs/api/plugin-my-plugin.md`
+
+The docs builder uses this name to locate your package in the workspace and scan `src/index.ts` for public exports. If the name doesn’t match, the builder will just copy the markdown verbatim and your API placeholders won’t be rendered.
+
+### Structure of a plugin API page
+At minimum, include a header, a short description, a usage example, and an API section with placeholders that map to your exports.
+
+Example (`docs/api/plugin-my-plugin.md`):
+
+```markdown
+# @milkdown/plugin-my-plugin
+
+My Plugin adds amazing capability X to Milkdown.
+
+## Usage
+
+```ts
+import { Editor } from '@milkdown/kit/core'
+import { commonmark } from '@milkdown/kit/preset/commonmark'
+import { myPlugin } from '@milkdown/kit/plugin/my-plugin'
+
+Editor.make().use(commonmark).use(myPlugin).create()
+```
+
+## API
+
+@myPlugin
+@myPluginConfig
+@MyProvider
+@MyProviderOptions
+```
+
+Notes:
+- Prefer kit import examples (`@milkdown/kit/...`) in docs snippets for the best DX, but ensure your package itself exports from `src/index.ts` (see below) so the builder can resolve the API.
+- The `@Name` lines are placeholders. Each must match an exported symbol exactly (function, const, class, type, enum).
+
+### How placeholders map to exports
+The builder renders placeholders using template files in `docs/templates/`:
+- Functions/constants/contexts: `define.md`
+- Classes: `class.md`
+- Enums: `enum.md`
+- Type aliases/interfaces: `typealias.md`
+
+You don’t need to reference these templates directly—just export your symbols and list them with `@SymbolName` in the markdown.
+
+### Make your exports discoverable
+The builder scans the package entry at `src/index.ts`. Ensure all public API is exported from there:
+
+```ts
+// packages/plugins/plugin-my-plugin/src/index.ts
+export * from './my-plugin'
+export * from './my-plugin-config'
+export * from './my-provider'
+export * from './types'
+```
+
+If a symbol is not re-exported from `src/index.ts`, it won’t be available to the docs generator (and the `@Symbol` placeholder won’t render).
+
+### Write good JSDoc for clean API pages
+Add TSDoc/JSDoc comments to exported items. The templates will include these descriptions:
+
+```ts
+/**
+ * Create a configured instance of My Plugin.
+ * @param id Unique identifier for this plugin instance.
+ * @returns A Milkdown plugin bundle you can pass to `Editor.use`.
+ */
+export const myPluginFactory = (id: string) => { /* ... */ }
+
+/** Options for MyProvider. */
+export interface MyProviderOptions {
+  /** Called when selection changes. */
+  onChange?: () => void
+}
+
+/** Manages DOM for My Plugin’s UI. */
+export class MyProvider { /* ... */ }
+```
+
+Tips:
+- Document params and return values (`@param`, `@returns`) and add a top-line summary.
+- For types/enums, add a brief description above the export.
+- Use precise names—your placeholders must exactly match these exported identifiers.
+
+### Build and verify
+- Build the docs: `pnpm --filter=@milkdown/docs build`
+  - The script reads `docs/api/*.md`, resolves `@milkdown/<name>` packages, and writes generated files into `docs/lib/*.md`.
+- Open `docs/lib/plugin-<name>.md` to confirm placeholders were rendered into API sections.
+- Do not commit `docs/lib` (it’s git-ignored); commit changes under `docs/api` only.
+
+### Common checklist for a new plugin
+- [ ] `docs/api/plugin-<name>.md` created and named to match the package
+- [ ] Code examples use kit imports (`@milkdown/kit/...`)
+- [ ] All public API re-exported from `src/index.ts`
+- [ ] API placeholders (`@SymbolName`) present and aligned with exports
+- [ ] JSDoc added to all exported functions/classes/types
+- [ ] `pnpm --filter=@milkdown/docs build` passes and renders `docs/lib/plugin-<name>.md`
+
+If you need a reference, check existing pages in `docs/api/` like `plugin-block.md`, `plugin-tooltip.md`, or `plugin-slash.md` and mirror their structure.
 
 ### Theme Development
 
@@ -1655,6 +1762,38 @@ E2E (Playwright)
 - Focus on realistic typing flows, keyboard shortcuts, and interactions that are difficult to validate via unit tests.
 - Prefer role/text selectors; avoid brittle CSS selectors.
 - Keep scenarios deterministic and fast. Use the smallest document that exercises the behavior.
+
+E2E purpose & scope
+- Validates real browser behavior: typing, selection, clipboard, shortcuts, DOM updates, and cross‑plugin interactions.
+- Not a replacement for unit tests and does not “test everything”. Target a few critical user journeys per plugin.
+
+When to add scenarios
+- Add for interactive plugins or integration‑heavy features:
+  - Keyboard shortcuts, slash/menu flows, paste/clipboard, tooltips, cursor/collab UX, drag/drop, multi‑editor behavior.
+  - Timing‑sensitive or browser‑API‑dependent flows (selection, clipboard, IME quirks).
+- Skip for purely structural/schema‑only changes unless there’s tangible UX/regression risk.
+
+How to add a plugin scenario
+- Create a demo page under `e2e/src/<plugin-name>/` that mounts an editor instance with the plugin enabled.
+- Register the route in `e2e/src/data.ts`:
+  - `export const <pluginName> = { title: 'Your Title', link: '/<plugin-name>/' }`
+  - Add it to the exported `cases` list.
+- Ensure the e2e app depends on the plugin (`e2e/package.json`):
+  - Add `"@milkdown/plugin-<name>": "workspace:*"` to `dependencies` if not present.
+- Write tests in `e2e/tests/plugin/<plugin-name>.spec.ts` covering key flows.
+
+When not to add
+- Do not duplicate assertions already covered by unit tests (parse/serialize, simple commands).
+- Avoid broad “tests everything” scenarios; keep to essential user journeys.
+
+Ownership
+- Repository owners curate e2e coverage to balance signal vs. CI time.
+- Contributors should propose e2e scenarios when they add clear value (new UX, cross‑plugin integration, regressions).
+
+Run tips
+- First‑time setup: `pnpm --filter=@milkdown/e2e run test:install`
+- Run locally: `pnpm test:e2e`
+- Debug UI: `pnpm --filter=@milkdown/e2e run test:debug`
 
 Common pitfalls checklist
 - [ ] Plugin order for remark/syntax is correct.
