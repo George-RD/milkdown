@@ -10,7 +10,7 @@ This plan outlines high‑level issues to complete the Grid Tables plugin, keepi
   - Expose operations via grid table commands: addGridRowAfter/Before, deleteGridRow, addGridColumnAfter/Before, deleteGridColumn, setGridCellAlign, setGridCellVAlign, mergeGridCellRight, splitGridCell, navigation commands.
   - Provide stable CSS hooks and class names; ensure styles are theme‑friendly and scoped.
   - Add a $view plugin or component wrapper to render controls near selection/hover, respecting editability.
-  - Place unit tests under package test/ directory per standards; add basic e2e flows for major actions.
+  - Place unit tests under `src/__test__/` with Vitest; add basic e2e flows for major actions.
 - Acceptance Criteria
   - Hover/selection affordances appear only on grid tables; actions execute the corresponding grid commands and update the document.
   - Works across table head/body/foot and respects colSpan/rowSpan.
@@ -76,6 +76,6 @@ This plan outlines high‑level issues to complete the Grid Tables plugin, keepi
 ## General Guidance (applies to all issues)
 - Follow Plugin Development Guide patterns (array‑based composables, withMeta on exports, typed contexts, $command/$view/$remark usage, markdown parse/serialize symmetry).
 - Respect monorepo conventions: kebab‑case files, type‑only imports, export via package entry. No cross‑package private imports.
-- Tests: place unit tests under package test/ directory (Vitest/jsdom) and extend Playwright e2e where relevant. Prefer role/text selectors.
+- Tests: place unit tests under `src/__test__/` (Vitest/jsdom) and extend Playwright e2e where relevant. Prefer role/text selectors.
 - Docs/Stories: update Storybook and docs when behavior changes; ensure plugin load order guidance is explicit.
 - Quality gates: lint/format must pass (`pnpm test`), and add a changeset for user‑facing changes.

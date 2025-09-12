@@ -1552,13 +1552,80 @@ Debugging in stories
 ## Testing Playbook (Unit + E2E)
 
 Unit tests (Vitest)
-- Co‑locate `*.spec.ts` next to sources.
+- Required for all first‑party plugins going forward. Each new plugin must include unit tests that verify its core behavior.
+- Co‑locate `*.spec.ts` next to the source they cover. Use `src/__test__/` for shared setup (`vitest.setup.ts`) and package‑level integration specs. Prefer `__test__` (singular) over `__tests__`.
 - Use `Editor.make().use(commonmark).use(plugin)`; set `defaultValueCtx` to a precise sample.
 - Assertions
   - DOM: query via `editorViewCtx`.
   - Commands: call `editor.action((ctx) => ctx.get(commandsCtx).call(cmd.key, args))`.
   - Round‑trip parse/serialize: set markdown → read back via serializer (or compare doc JSON).
 - Regex input rules: add targeted tests for boundaries to avoid matching in URLs/paths.
+
+Standard test layout
+```text
+packages/plugins/
+  <plugin-name>/
+    src/
+      feature-a.ts
+      feature-a.spec.ts         # co‑located unit test (preferred)
+      __test__/                 # optional for setup/integration
+        vitest.setup.ts         # shared setup (e.g. jest‑dom)
+        integration.spec.ts     # package‑level integration tests
+    vitest.config.ts            # required so root runner picks this package up
+    tsconfig.json               # exclude tests from build (see below)
+```
+
+Per‑package Vitest config
+```ts
+// vitest.config.ts
+import { defineConfig } from 'vitest/config'
+
+export default defineConfig({
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    // If you have a setup file under src/__test__
+    setupFiles: ['./src/__test__/vitest.setup.ts'],
+  },
+})
+```
+
+Root runner note: the repository root config uses `projects: ['packages/**/*/vitest.config.ts']`. A package’s unit tests are only executed if that package contains its own `vitest.config.ts`.
+
+TypeScript build excludes (prevent emitting tests into `lib/`)
+```jsonc
+// tsconfig.json (per plugin)
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib",
+    "emitDeclarationOnly": true,
+    "tsBuildInfoFile": "./lib/tsconfig.tsbuildinfo"
+  },
+  "include": ["src"],
+  "exclude": [
+    "src/**/*.spec.ts",
+    "src/**/*.test.ts",
+    "src/__test__/**",
+    "src/__tests__/**"
+  ]
+}
+```
+
+Minimum coverage by plugin type
+- Schema/Markdown plugins (nodes/marks, remark integrations)
+  - Round‑trip parse/serialize for representative samples.
+  - Input rule boundary tests (avoid over‑matching, handle edges).
+  - Basic command tests (create/toggle/set behavior).
+  - Light DOM presence checks when rendering is relevant.
+- Service/View/interaction‑heavy plugins (tooltips, slash, block, indent, upload, cursor, collab)
+  - Unit tests validating core logic and DOM behavior in jsdom.
+  - At least one E2E scenario for realistic typing/keyboard flows (see below).
+- Presets
+  - Smoke tests for composition and representative feature toggles.
+- Themes
+  - Unit tests optional; rely on Storybook/visual verification unless logic is added.
 
 Round‑trip example (pattern used in repo)
 ```ts
@@ -1584,8 +1651,10 @@ it('should preserve structure', async () => {
 ```
 
 E2E (Playwright)
-- Put scenarios in `e2e/tests`. Focus on realistic typing flows and keyboard shortcuts.
-- Prefer role/text selectors.
+- Put plugin scenarios under `e2e/tests/plugin/<plugin-name>.spec.ts`.
+- Focus on realistic typing flows, keyboard shortcuts, and interactions that are difficult to validate via unit tests.
+- Prefer role/text selectors; avoid brittle CSS selectors.
+- Keep scenarios deterministic and fast. Use the smallest document that exercises the behavior.
 
 Common pitfalls checklist
 - [ ] Plugin order for remark/syntax is correct.
