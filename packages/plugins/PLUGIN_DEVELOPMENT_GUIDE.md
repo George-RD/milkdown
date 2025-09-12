@@ -5,6 +5,7 @@ This comprehensive guide covers patterns and best practices for creating Milkdow
 ## Quick Navigation
 
 - Start Here: [Plugin Overview](#plugin-architecture-overview)
+- How To Work: [Developer Workflow](#developer-workflow)
 - Build Plugins: [Patterns](#plugin-development-patterns)
 - Parse & Serialize Markdown: [Transformer API](#the-transformer-api)
 - Custom Views & Services: [View Plugins](#4-view-plugins-custom-dom-rendering), [Service Plugins](#3-service-plugins-complex-business-logic)
@@ -29,6 +30,37 @@ export const myPlugin: MilkdownPlugin[] = [
 ```
 
 Plugins integrate through Milkdown's dependency injection system using contexts (`$ctx`) and composable utilities.
+
+## Developer Workflow
+
+Recommended end-to-end flow for building a new plugin:
+
+1) Scaffold and iterate
+- Implement features in small slices; export every public piece from `src/index.ts` immediately.
+- Add TSDoc/JSDoc to exported symbols as you go (not at the end).
+- Keep names stable; prefer renaming early before adoption.
+
+2) Document-as-you-go
+- Create `docs/api/plugin-<name>.md` on day one with: title, short description, usage snippet, and an initial `## API` section.
+- Add `@SymbolName` placeholders for each exported API surface and update them when exports change.
+- Build docs to validate: `pnpm --filter=@milkdown/docs build` and review `docs/lib/plugin-<name>.md`.
+
+3) Develop with feedback
+- Run Storybook: `pnpm start` and add stories under `storybook/` if the plugin has UI.
+- Add unit tests next to sources; run `pnpm test:unit`.
+- Add E2E tests if behavior spans multiple interactions.
+
+4) Polish and stabilize
+- When the API is stable, ensure examples use kit imports (`@milkdown/kit/...`).
+- If appropriate, add kit re-export (see "Kit Package" section) and update docs usage accordingly.
+- Add a changeset for user-facing changes: `pnpm changeset`.
+
+5) Before opening a PR
+- Ensure `pnpm test` passes (lint + unit), and docs build cleanly.
+- Do not commit `docs/lib` artifacts; only `docs/api` should change.
+- Use `pnpm commit` to follow Conventional Commits.
+
+This workflow keeps code, types, and docs in sync and catches naming/shape issues early.
 
 ## Core Imports You'll Need
 
