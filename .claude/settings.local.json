@@ -11,9 +11,20 @@
       "Bash(pnpm install:*)",
       "Bash(node:*)",
       "Bash(pnpm test:*)",
-      "Bash(npx vitest run:*)"
+      "Bash(npx vitest run:*)",
+      "Bash(npx tsc:*)",
+      "Bash(grep:*)",
+      "Bash(npx vitest:*)",
+      "Bash(curl:*)",
+      "Bash(pnpm --filter=@milkdown/plugin-gridtables run build)",
+      "Bash(pnpm start:*)",
+      "Bash(pnpm --filter=@milkdown/plugin-gridtables run test)",
+      "Bash(mkdir:*)",
+      "Bash(pnpm dev:*)",
+      "Bash(pnpm --filter=@milkdown/plugin-gridtables test)"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "enableAllProjectMcpServers": true
 }

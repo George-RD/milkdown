@@ -124,5 +124,8 @@
       "safe-buffer": "npm:@nolyfill/safe-buffer@^1",
       "safer-buffer": "npm:@nolyfill/safer-buffer@^1"
     }
+  },
+  "dependencies": {
+    "@adobe/remark-gridtables": "^3.0.14"
   }
 }

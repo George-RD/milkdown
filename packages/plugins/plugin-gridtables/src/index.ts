@@ -1,5 +1,4 @@
 import type { MilkdownPlugin } from '@milkdown/ctx'
-import type { RemarkPluginRaw } from '@milkdown/transformer'
 
 import { $remark } from '@milkdown/utils'
 import remarkGridTables from '@adobe/remark-gridtables'
@@ -74,7 +73,7 @@ export { gridTableProseMirrorPlugins } from './prosemirror-plugin'
 /// This plugin wraps [@adobe/remark-gridtables](https://github.com/adobe/remark-gridtables).
 export const remarkGridTablesPlugin = $remark(
   'remarkGridTables',
-  () => remarkGridTables as RemarkPluginRaw<any>
+  () => remarkGridTables
 )
 
 withMeta(remarkGridTablesPlugin.plugin, {
