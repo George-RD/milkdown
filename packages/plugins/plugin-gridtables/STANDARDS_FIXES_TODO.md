@@ -3,11 +3,13 @@
 This checklist tracks the changes to bring `@milkdown/plugin-gridtables` in line with Milkdown’s plugin standards and the review notes.
 
 ## 1) Plugin Export Pattern (Critical)
-- [ ] Add `GridTablesPlugin` tuple type (typed array) matching block/slash patterns
-- [ ] Update `src/index.ts` to export `gridTables` as typed tuple
-- [ ] Attach `gridTables.key = gridTablePluginConfig.key`
-- [ ] Attach `gridTables.pluginKey = gridTableProseMirrorPlugin.key`
-- [ ] Keep convenience exports (`gridTableProseMirrorPlugins`, commands, schema, keymap) intact
+- [x] Add `GridTablesPlugin` tuple type (typed array) matching block/slash patterns
+- [x] Update `src/index.ts` to export `gridTables` as typed tuple
+- [x] Attach `gridTables.key = gridTablePluginConfig.key`
+- [x] Attach `gridTables.pluginKey = gridTableProseMirrorPlugin.key`
+- [x] Keep convenience exports (`gridTableProseMirrorPlugins`, commands, schema, keymap) intact
+
+Guide Alignment: Follows the typed array pattern used in `plugin-block` and `plugin-slash`, exposing `key` (ctx slice) and `pluginKey` (prosemirror key function) for consumers. No deprecated APIs touched; uses `$ctx` and `$prose` contracts per the guide.
 
 ## 2) Test Directory Cleanup
 - [ ] Create single `test/` directory in package root
@@ -44,4 +46,3 @@ This checklist tracks the changes to bring `@milkdown/plugin-gridtables` in line
 ## Notes
 - Only commit scoped changes for this task; avoid bundling unrelated modifications.
 - Keep API surface minimal and typed; follow patterns in `plugin-block` and `plugin-slash`.
-

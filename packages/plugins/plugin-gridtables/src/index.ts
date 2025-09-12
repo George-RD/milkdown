@@ -1,4 +1,5 @@
-import type { MilkdownPlugin } from '@milkdown/ctx'
+import type { MilkdownPlugin, SliceType } from '@milkdown/ctx'
+import type { $Ctx, $Prose } from '@milkdown/utils'
 
 import { $remark } from '@milkdown/utils'
 import remarkGridTables from '@adobe/remark-gridtables'
@@ -20,7 +21,11 @@ import {
 import { gridTableCommands } from './commands'
 import { gridTableKeymap } from './keymap'
 import { gridTableInputRules } from './input-rules'
-import { gridTableProseMirrorPlugins } from './prosemirror-plugin'
+import {
+  gridTableProseMirrorPlugins,
+  gridTablePluginConfig,
+  gridTableProseMirrorPlugin,
+} from './prosemirror-plugin'
 import { withMeta } from './__internal__'
 
 /// Export schema types for external use
@@ -87,7 +92,7 @@ withMeta(remarkGridTablesPlugin.options, {
 })
 
 /// All plugins exported by this package.
-export const gridTables: MilkdownPlugin[] = [
+export const gridTables = [
   // Remark plugin for markdown parsing
   remarkGridTablesPlugin,
   
@@ -115,4 +120,30 @@ export const gridTables: MilkdownPlugin[] = [
   
   // ProseMirror plugins for enhanced functionality
   gridTableProseMirrorPlugins,
-].flat()
+].flat() as GridTablesPlugin
+gridTables.key = gridTablePluginConfig.key
+gridTables.pluginKey = gridTableProseMirrorPlugin.key
+
+// Typed tuple pattern with key/pluginKey (align with block/slash plugins)
+// Provides stable keys for consumers that need direct access to config/prose plugin keys.
+export type GridTablesPlugin = [
+  $Ctx<
+    {
+      enableCellHover: boolean
+      enableColumnResize: boolean
+      cellHoverClass: string
+    },
+    'gridTablePluginConfig'
+  >,
+  $Prose,
+] & {
+  key: SliceType<
+    {
+      enableCellHover: boolean
+      enableColumnResize: boolean
+      cellHoverClass: string
+    },
+    'gridTablePluginConfig'
+  >
+  pluginKey: $Prose['key']
+}
