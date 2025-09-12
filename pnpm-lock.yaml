@@ -36,6 +36,10 @@ overrides:
 importers:
 
   .:
+    dependencies:
+      '@adobe/remark-gridtables':
+        specifier: ^3.0.14
+        version: 3.0.14
     devDependencies:
       '@changesets/cli':
         specifier: ^2.22.0
@@ -756,6 +760,9 @@ importers:
       '@milkdown/exception':
         specifier: workspace:*
         version: link:../../exception
+      '@milkdown/plugin-slash':
+        specifier: workspace:*
+        version: link:../plugin-slash
       '@milkdown/prose':
         specifier: workspace:*
         version: link:../../prose

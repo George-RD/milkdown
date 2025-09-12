@@ -46,6 +46,7 @@
     "@milkdown/prose": "workspace:*",
     "@milkdown/utils": "workspace:*",
     "@milkdown/transformer": "workspace:*",
+    "@milkdown/plugin-slash": "workspace:*",
     "tslib": "^2.8.1"
   },
   "devDependencies": {
