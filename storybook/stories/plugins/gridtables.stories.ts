@@ -19,34 +19,36 @@ export default meta
 
 type Story = StoryObj<CommonArgs>
 
+// Canonical minimal example (alignment matters)
 const sampleGridTable = `
-+----------------+--------+--------+
-| Grid Tables    | Are    | Cool   |
-+================+========+========+
-| col 1 is       | left-  | \$1600 |
-| left-aligned   | align  |        |
-+----------------+--------+--------+
-| col 2 is       | cent-  | \$12   |
-| centered       | ered   |        |
-+----------------+--------+--------+
-| col 3 is right | right- | \$1    |
-| aligned        | align  |        |
-+----------------+--------+--------+
++-------------------+------+
+| Table Headings    | Here |
++===================+======+
+| cell              | more |
++-------------------+------+
 `
 
+// Canonical complex example from adobe/remark-gridtables README
 const complexGridTable = `
-+-------------------------+--------+--------+--------+
-| Header Cell (spans 4)                             |
-+=========================+========+========+========+
-| **Bold Text**           | *Italic*    | \`code\` |
-+-------------------------+--------+--------+--------+
-| Multi-line              | Cell    | Cell    | Cell |
-| cell with               | 2       | 3       | 4    |
-| line breaks             |         |         |      |
-+-------------------------+--------+--------+--------+
-| - List item 1           | Normal  | Normal  | End  |
-| - List item 2           | Cell    | Cell    |      |
-+-------------------------+--------+--------+--------+
++-------------------+------+
+| Table Headings    | Here |
++--------+----------+------+
+| Sub    | Headings | Too  |
++========+=================+
+| cell   | column spanning |
+| spans  +---------:+------+
+| rows   |   normal | cell |
++---v----+:---------------:+
+|        | cells can be    |
+|        | *formatted*     |
+|        | **paragraphs**  |
+|        | \`\`\`             |
+| multi  | and contain     |
+| line   | blocks          |
+| cells  | \`\`\`             |
++========+=========:+======+
+| footer |    cells |      |
++--------+----------+------+
 `
 
 // Custom setup that loads grid tables BEFORE commonmark
@@ -133,6 +135,6 @@ export const Empty: Story = {
     return setupGridTablesEditor([], args)
   },
   args: {
-    defaultValue: 'Try creating a grid table! Type `|grid-table|` or `|grid-table-full|`',
+    defaultValue: 'Grid tables: try pasting a valid ASCII grid table (see Basic/Complex). Live typing input rules are disabled; slash-menu insertion coming later.',
   },
 }
