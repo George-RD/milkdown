@@ -241,3 +241,4 @@ describe('Grid Tables Serialization', () => {
     expect(output).toContain('More normal text')
   })
 })
+

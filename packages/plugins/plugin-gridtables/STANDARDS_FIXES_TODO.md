@@ -12,11 +12,13 @@ This checklist tracks the changes to bring `@milkdown/plugin-gridtables` in line
 Guide Alignment: Follows the typed array pattern used in `plugin-block` and `plugin-slash`, exposing `key` (ctx slice) and `pluginKey` (prosemirror key function) for consumers. No deprecated APIs touched; uses `$ctx` and `$prose` contracts per the guide.
 
 ## 2) Test Directory Cleanup
-- [ ] Create single `test/` directory in package root
-- [ ] Move `src/__test__/*` → `test/*`
-- [ ] Move `src/__tests__/prosemirror-integration.test.ts` → `test/prosemirror-integration.test.ts`
-- [ ] Update `vitest.config.ts` to `setupFiles: ['./test/vitest.setup.ts']`
-- [ ] Update `tsconfig.json` excludes to include `"test/**"`
+- [x] Consolidate to `src/__test__/` (co-located tests)
+- [x] Move `src/__tests__/prosemirror-integration.test.ts` → `src/__test__/prosemirror-integration.test.ts`
+- [x] Keep other specs in `src/__test__/` and restore setup file there
+- [x] Update `vitest.config.ts` to `setupFiles: ['./src/__test__/vitest.setup.ts']`
+- [x] Keep `tsconfig.json` excludes for `src/__tests__/**` (and `*.test.ts`) only
+
+Guide Alignment: The repository standard is co‑located tests under `src/__test__` (e.g., preset-commonmark, highlight). The previous suggestion to use a top-level `test/` folder was incorrect for this repo. We aligned with the guide’s “co‑locate *.spec.ts next to source” contract and unified duplicate `__test__/__tests__` dirs accordingly.
 
 ## 3) Documentation Enhancement (README)
 - [ ] Add usage via `@milkdown/kit/plugin/gridtables` and direct package

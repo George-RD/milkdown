@@ -2,6 +2,7 @@
 
 // Mock elementFromPoint
 if (!document.elementFromPoint) {
+  // @ts-expect-error - jsdom doesn't define this
   document.elementFromPoint = () => null
 }
 
@@ -63,3 +64,4 @@ Object.defineProperty(Range.prototype, 'getBoundingClientRect', {
 Object.defineProperty(Element.prototype, 'scrollIntoView', {
   value: function () {},
 })
+

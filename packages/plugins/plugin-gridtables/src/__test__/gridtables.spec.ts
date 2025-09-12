@@ -286,3 +286,4 @@ describe('Grid Tables Plugin', () => {
     }
   })
 })
+

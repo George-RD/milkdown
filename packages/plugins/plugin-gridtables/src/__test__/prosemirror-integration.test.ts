@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 
 import { Editor, defaultValueCtx, editorViewCtx } from '@milkdown/core'
 import { commonmark } from '@milkdown/preset-commonmark'
@@ -104,7 +104,7 @@ describe('Grid Tables ProseMirror Integration', () => {
       expect(tbody).toBeTruthy()
       expect(tfoot).toBeTruthy()
 
-      // Should have 3 body rows (4 total - 1 header - 1 footer = 2, but our implementation creates 3)
+      // Should have 3 body rows (implementation detail)
       expect(tbody?.querySelectorAll('tr').length).toBe(3)
       expect(tfoot?.querySelectorAll('tr').length).toBe(1)
     })
@@ -404,3 +404,4 @@ describe('Grid Tables ProseMirror Integration', () => {
     })
   })
 })
+
