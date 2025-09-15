@@ -42,7 +42,7 @@ describe('Grid Tables – Canonical and Malformed Samples', () => {
     const view = editor.ctx.get(editorViewCtx)
     const table = view.dom.querySelector('table[data-type="grid-table"]')
     expect(table).toBeTruthy()
-    
+
     // basic shape sanity
     expect(table?.querySelectorAll('tr').length).toBeGreaterThan(0)
     expect(table?.querySelectorAll('td, th').length).toBeGreaterThan(0)
@@ -69,7 +69,9 @@ describe('Grid Tables – Canonical and Malformed Samples', () => {
     await editor.create()
 
     const view = editor.ctx.get(editorViewCtx)
-    const gridTables = view.dom.querySelectorAll('table[data-type="grid-table"]')
+    const gridTables = view.dom.querySelectorAll(
+      'table[data-type="grid-table"]'
+    )
     expect(gridTables.length).toBe(0)
 
     // Ensure raw ASCII remains in text content to confirm non-parsed state
@@ -77,4 +79,3 @@ describe('Grid Tables – Canonical and Malformed Samples', () => {
     expect(text.includes('+===')).toBe(true)
   })
 })
-

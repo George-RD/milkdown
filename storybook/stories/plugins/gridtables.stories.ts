@@ -12,18 +12,42 @@ import {
   splitGridCellCommand,
   exitGridTableCommand,
 } from '@milkdown/kit/plugin/gridtables'
-import { Editor, defaultValueCtx, editorViewOptionsCtx, rootCtx } from '@milkdown/kit/core'
+import {
+  Editor,
+  defaultValueCtx,
+  editorViewOptionsCtx,
+  rootCtx,
+} from '@milkdown/kit/core'
 import { history } from '@milkdown/kit/plugin/history'
 import { listener } from '@milkdown/kit/plugin/listener'
 import { commonmark } from '@milkdown/kit/preset/commonmark'
 import { nord } from '@milkdown/theme-nord'
+import { gfm } from '@milkdown/kit/preset/gfm'
+import { clipboard } from '@milkdown/kit/plugin/clipboard'
 
 import type { CommonArgs } from '../utils/shadow'
 
-import { wrapInShadowWithNord } from '../utils/shadow'
+import { setupMilkdown, wrapInShadowWithNord } from '../utils/shadow'
 
 const meta: Meta<CommonArgs> = {
   title: 'Plugins/Grid Tables',
+  parameters: {
+    docs: {
+      description: {
+        component: `
+Grid Tables plugin for Milkdown implementing advanced table features from @adobe/remark-gridtables.
+
+## Features
+- Multi-line cells with text wrapping
+- Cell alignment (left, center, right)
+- Vertical alignment (top, middle, bottom)
+- Cell spanning and merging
+- Complex table structures
+- Interactive commands for table manipulation
+        `,
+      },
+    },
+  },
 }
 
 export default meta
@@ -62,110 +86,83 @@ const complexGridTable = `
 +--------+----------+------+
 `
 
-// Custom setup that loads grid tables BEFORE commonmark
-function setupGridTablesEditor(styles: string[], args: CommonArgs) {
-  const { wrapper, root } = wrapInShadowWithNord(styles)
-  
-  const editor = Editor.make()
-    .config((ctx) => {
-      ctx.set(rootCtx, wrapper)
-      ctx.set(defaultValueCtx, args.defaultValue ?? '')
-      ctx.set(editorViewOptionsCtx, {
-        editable: () => !args.readonly,
-      })
-    })
-    .config(nord)
-    // CRITICAL: gridTables must load before commonmark to parse grid syntax
-    .use(gridTables)
-    .use(commonmark)
-    .use(listener)
-    .use(history)
-
-  editor
-    .create()
-    .then(() => {
-      args.instance = editor
-      
-      // Debug: Check what's in the DOM after creation
-      console.warn('Grid Tables Debug - DOM content:', wrapper.innerHTML)
-      console.warn('Grid Tables Debug - Default value was:', args.defaultValue)
-      
-      // Check if any tables exist
-      const tables = wrapper.querySelectorAll('table')
-      console.warn('Grid Tables Debug - Tables found:', tables.length)
-      tables.forEach((table, i) => {
-        console.warn(`Table ${i}:`, table.outerHTML)
-        // Check if it's a grid table
-        if (table.getAttribute('data-type') === 'grid-table') {
-          console.warn(`✅ Found grid table ${i}`)
-        } else {
-          console.warn(`⚠️  Found regular table ${i}`)
-        }
-      })
-      
-      // Check for any text content that might be unparsed markdown
-      const textContent = wrapper.textContent
-      if (textContent?.includes('+---') || textContent?.includes('+===')) {
-        console.warn('❌ Grid Tables Debug - Found unparsed grid table markdown in text content')
-        console.warn('Unparsed content:', textContent.substring(0, 200))
-      } else {
-        console.warn('✅ Grid Tables Debug - No unparsed grid table markdown found')
-      }
-      
-      // Test the editor's transformation capabilities
-      const editorValue = editor.action(ctx => ctx.get(defaultValueCtx))
-      console.warn('Editor value:', editorValue)
-    })
-    .catch((err) => {
-      console.error('❌ Grid Tables Debug - Editor creation failed:', err)
-    })
-
-  return root
-}
-
 export const Basic: Story = {
   render: (args) => {
-    return setupGridTablesEditor([], args)
+    return setupMilkdown([], args, (editor) => {
+      editor.use(gfm).use(gridTables).use(clipboard)
+    })
   },
   args: {
     defaultValue: sampleGridTable,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Basic grid table with standard table structure and formatting.',
+      },
+    },
   },
 }
 
 export const Complex: Story = {
   render: (args) => {
-    return setupGridTablesEditor([], args)
+    return setupMilkdown([], args, (editor) => {
+      editor.use(gridTables)
+    })
   },
   args: {
     defaultValue: complexGridTable,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Complex grid table demonstrating cell spans, alignment, multi-line cells, and formatted content.',
+      },
+    },
   },
 }
 
 export const Empty: Story = {
   render: (args) => {
-    return setupGridTablesEditor([], args)
+    return setupMilkdown([], args, (editor) => {
+      editor.use(gridTables)
+    })
   },
   args: {
-    defaultValue: 'Grid tables: try pasting a valid ASCII grid table (see Basic/Complex). Live typing input rules are disabled; slash-menu insertion coming later.',
+    defaultValue:
+      'Try pasting a valid ASCII grid table (see Basic/Complex examples above).',
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Empty editor ready for grid table input via paste or interactive commands.',
+      },
+    },
   },
 }
 
 export const Interactive: Story = {
   render: (args) => {
-    // Build a small toolbar with command buttons
-    const { wrapper, root } = wrapInShadowWithNord([])
+    // Create custom setup for interactive toolbar
+    const { wrapper, root, shadow } = wrapInShadowWithNord([])
+    wrapper.classList.add('milkdown-storybook')
 
-    // Editor area
-    const editorHost = document.createElement('div')
-    wrapper.appendChild(editorHost)
-
-    // Toolbar
+    // Create toolbar container
     const toolbar = document.createElement('div')
     toolbar.style.display = 'flex'
     toolbar.style.flexWrap = 'wrap'
     toolbar.style.gap = '8px'
     toolbar.style.margin = '8px 0'
-    wrapper.prepend(toolbar)
+    toolbar.style.borderBottom = '1px solid var(--color-nord3)'
+    toolbar.style.paddingBottom = '8px'
+    shadow.appendChild(toolbar)
+
+    // Create markdown container (like setupMilkdown does)
+    const markdownContainer = document.createElement('div')
+    markdownContainer.classList.add('markdown-container')
+    shadow.appendChild(markdownContainer)
 
     const mkBtn = (label: string, onClick: () => void) => {
       const btn = document.createElement('button')
@@ -176,93 +173,108 @@ export const Interactive: Story = {
       btn.style.borderRadius = '4px'
       btn.style.background = 'transparent'
       btn.style.cursor = 'pointer'
+      btn.style.fontSize = '12px'
       btn.onmouseenter = () => (btn.style.background = 'var(--color-nord1)')
       btn.onmouseleave = () => (btn.style.background = 'transparent')
       toolbar.appendChild(btn)
       return btn
     }
 
+    // Set up editor similar to setupMilkdown but with gridTables
     const editor = Editor.make()
+      .enableInspector(args.enableInspector ?? false)
       .config((ctx) => {
-        ctx.set(rootCtx, editorHost)
+        ctx.set(rootCtx, wrapper)
         ctx.set(defaultValueCtx, args.defaultValue ?? '')
-        ctx.set(editorViewOptionsCtx, { editable: () => !args.readonly })
+        ctx.set(editorViewOptionsCtx, {
+          editable: () => !args.readonly,
+        })
       })
       .config(nord)
-      // Load order: gridTables before commonmark
-      .use(gridTables)
-      .use(commonmark)
       .use(listener)
+      .use(commonmark)
+      .use(gridTables) // Load gridTables after commonmark
       .use(history)
 
+    // Wire up buttons after editor creation
     editor
       .create()
       .then(() => {
         args.instance = editor
+
+        mkBtn('Insert 3x3', () => {
+          args.instance.action(callCommand(insertGridTableCommand.key))
+        })
+        mkBtn('Insert 4x5 + footer', () => {
+          args.instance.action(
+            callCommand(insertGridTableCommand.key, {
+              rows: 4,
+              cols: 5,
+              hasHeader: true,
+              hasFooter: true,
+            })
+          )
+        })
+
+        mkBtn('Row: Add After', () => {
+          args.instance.action(callCommand(addGridRowAfterCommand.key))
+        })
+        mkBtn('Col: Add Before', () => {
+          args.instance.action(callCommand(addGridColumnBeforeCommand.key))
+        })
+
+        mkBtn('Align: Left', () => {
+          args.instance.action(callCommand(setGridCellAlignCommand.key, 'left'))
+        })
+        mkBtn('Align: Center', () => {
+          args.instance.action(
+            callCommand(setGridCellAlignCommand.key, 'center')
+          )
+        })
+        mkBtn('Align: Right', () => {
+          args.instance.action(
+            callCommand(setGridCellAlignCommand.key, 'right')
+          )
+        })
+
+        mkBtn('VAlign: Top', () => {
+          args.instance.action(callCommand(setGridCellVAlignCommand.key, 'top'))
+        })
+        mkBtn('VAlign: Middle', () => {
+          args.instance.action(
+            callCommand(setGridCellVAlignCommand.key, 'middle')
+          )
+        })
+        mkBtn('VAlign: Bottom', () => {
+          args.instance.action(
+            callCommand(setGridCellVAlignCommand.key, 'bottom')
+          )
+        })
+
+        mkBtn('Merge Right', () => {
+          args.instance.action(callCommand(mergeGridCellRightCommand.key))
+        })
+        mkBtn('Split Cell', () => {
+          args.instance.action(callCommand(splitGridCellCommand.key))
+        })
+
+        mkBtn('Exit Table', () => {
+          args.instance.action(callCommand(exitGridTableCommand.key))
+        })
       })
       .catch(console.error)
-
-    // Wire buttons once editor is ready
-    const ready = setInterval(() => {
-      if (!args.instance) return
-      clearInterval(ready)
-
-      mkBtn('Insert 3x3', () => {
-        args.instance.action(callCommand(insertGridTableCommand.key))
-      })
-      mkBtn('Insert 4x5 + footer', () => {
-        args.instance.action(
-          callCommand(insertGridTableCommand.key, {
-            rows: 4,
-            cols: 5,
-            hasHeader: true,
-            hasFooter: true,
-          })
-        )
-      })
-
-      mkBtn('Row: Add After', () => {
-        args.instance.action(callCommand(addGridRowAfterCommand.key))
-      })
-      mkBtn('Col: Add Before', () => {
-        args.instance.action(callCommand(addGridColumnBeforeCommand.key))
-      })
-
-      mkBtn('Align: Left', () => {
-        args.instance.action(callCommand(setGridCellAlignCommand.key, 'left'))
-      })
-      mkBtn('Align: Center', () => {
-        args.instance.action(callCommand(setGridCellAlignCommand.key, 'center'))
-      })
-      mkBtn('Align: Right', () => {
-        args.instance.action(callCommand(setGridCellAlignCommand.key, 'right'))
-      })
-
-      mkBtn('VAlign: Top', () => {
-        args.instance.action(callCommand(setGridCellVAlignCommand.key, 'top'))
-      })
-      mkBtn('VAlign: Middle', () => {
-        args.instance.action(callCommand(setGridCellVAlignCommand.key, 'middle'))
-      })
-      mkBtn('VAlign: Bottom', () => {
-        args.instance.action(callCommand(setGridCellVAlignCommand.key, 'bottom'))
-      })
-
-      mkBtn('Merge Right', () => {
-        args.instance.action(callCommand(mergeGridCellRightCommand.key))
-      })
-      mkBtn('Split Cell', () => {
-        args.instance.action(callCommand(splitGridCellCommand.key))
-      })
-
-      mkBtn('Exit Table', () => {
-        args.instance.action(callCommand(exitGridTableCommand.key))
-      })
-    }, 50)
 
     return root
   },
   args: {
     defaultValue: sampleGridTable,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Interactive grid table editor demonstrating all available commands: insert tables, add rows/columns, set alignment, merge/split cells.',
+      },
+    },
   },
 }

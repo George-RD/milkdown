@@ -7,9 +7,7 @@ import { gridTables } from '..'
 
 function createEditor() {
   const editor = Editor.make()
-  editor
-    .use(commonmark)
-    .use(gridTables)
+  editor.use(commonmark).use(gridTables)
   return editor
 }
 
@@ -38,7 +36,6 @@ describe('Grid Tables Plugin', () => {
     expect(table).toBeTruthy()
 
     if (table) {
-
       // Check for table head
       const thead = table?.querySelector('thead')
       expect(thead).toBeTruthy()
@@ -52,7 +49,9 @@ describe('Grid Tables Plugin', () => {
       expect(cells?.length).toBeGreaterThan(0)
 
       // Verify cell content
-      const cellTexts = Array.from(cells || []).map(cell => cell.textContent?.trim())
+      const cellTexts = Array.from(cells || []).map((cell) =>
+        cell.textContent?.trim()
+      )
       expect(cellTexts).toContain('Table Headings')
       expect(cellTexts).toContain('Here')
       expect(cellTexts).toContain('cell')
@@ -83,15 +82,18 @@ describe('Grid Tables Plugin', () => {
     expect(table).toBeTruthy()
 
     if (table) {
-      
       // Check for cells with colspan attribute
       const cells = table?.querySelectorAll('td')
       expect(cells?.length).toBeGreaterThan(0)
-      
+
       // Verify table is parsed with column spans
-      const cellTexts = Array.from(cells || []).map(cell => cell.textContent?.trim())
-      const spannedCells = Array.from(cells || []).filter(cell => 
-        cell.getAttribute('colspan') && parseInt(cell.getAttribute('colspan')!) > 1
+      const cellTexts = Array.from(cells || []).map((cell) =>
+        cell.textContent?.trim()
+      )
+      const spannedCells = Array.from(cells || []).filter(
+        (cell) =>
+          cell.getAttribute('colspan') &&
+          parseInt(cell.getAttribute('colspan')!) > 1
       )
       expect(cellTexts).toContain('Header')
       expect(cellTexts).toContain('Normal')
@@ -122,13 +124,14 @@ describe('Grid Tables Plugin', () => {
     expect(table).toBeTruthy()
 
     if (table) {
-      
       // Check for cells
       const cells = table?.querySelectorAll('td, th')
       expect(cells?.length).toBeGreaterThan(0)
-      
+
       // Verify the table is parsed successfully
-      const cellTexts = Array.from(cells || []).map(cell => cell.textContent?.trim())
+      const cellTexts = Array.from(cells || []).map((cell) =>
+        cell.textContent?.trim()
+      )
       expect(cellTexts).toContain('Left')
       expect(cellTexts).toContain('L')
     }
@@ -157,16 +160,21 @@ describe('Grid Tables Plugin', () => {
     expect(table).toBeTruthy()
 
     if (table) {
-      
       // Check for rich content elements
       const boldElements = table?.querySelectorAll('strong')
       const italicElements = table?.querySelectorAll('em')
-      
+
       // Verify some rich content is present
       expect(boldElements?.length || italicElements?.length).toBeGreaterThan(0)
-      
-      const cellTexts = Array.from(table.querySelectorAll('td, th')).map(cell => cell.textContent?.trim())
-      expect(cellTexts.some(text => text?.includes('Bold') || text?.includes('Italic'))).toBeTruthy()
+
+      const cellTexts = Array.from(table.querySelectorAll('td, th')).map(
+        (cell) => cell.textContent?.trim()
+      )
+      expect(
+        cellTexts.some(
+          (text) => text?.includes('Bold') || text?.includes('Italic')
+        )
+      ).toBeTruthy()
     }
   })
 
@@ -193,7 +201,6 @@ describe('Grid Tables Plugin', () => {
     expect(table).toBeTruthy()
 
     if (table) {
-      
       const thead = table?.querySelector('thead')
       expect(thead).toBeTruthy()
 
@@ -201,7 +208,9 @@ describe('Grid Tables Plugin', () => {
       expect(tbody).toBeTruthy()
 
       // Verify the basic structure
-      const cellTexts = Array.from(table.querySelectorAll('td, th')).map(cell => cell.textContent?.trim())
+      const cellTexts = Array.from(table.querySelectorAll('td, th')).map(
+        (cell) => cell.textContent?.trim()
+      )
       expect(cellTexts).toContain('Header 1')
       expect(cellTexts).toContain('Body Cell 1')
     }
@@ -234,18 +243,25 @@ describe('Grid Tables Plugin', () => {
     if (table) {
       // Test for proper span handling
       const cells = table.querySelectorAll('td, th')
-      const spannedCells = Array.from(cells).filter(cell => {
+      const spannedCells = Array.from(cells).filter((cell) => {
         const colspan = cell.getAttribute('colspan')
         const rowspan = cell.getAttribute('rowspan')
-        return (colspan && parseInt(colspan) > 1) || (rowspan && parseInt(rowspan) > 1)
+        return (
+          (colspan && parseInt(colspan) > 1) ||
+          (rowspan && parseInt(rowspan) > 1)
+        )
       })
 
       // Should have cells with spanning
       expect(spannedCells.length).toBeGreaterThan(0)
-      
+
       // Verify content parsing
-      const cellTexts = Array.from(cells).map(cell => cell.textContent?.trim())
-      expect(cellTexts.some(text => text?.includes('A1') || text?.includes('B1'))).toBeTruthy()
+      const cellTexts = Array.from(cells).map((cell) =>
+        cell.textContent?.trim()
+      )
+      expect(
+        cellTexts.some((text) => text?.includes('A1') || text?.includes('B1'))
+      ).toBeTruthy()
     }
   })
 
@@ -277,13 +293,14 @@ describe('Grid Tables Plugin', () => {
     if (table) {
       const cells = table.querySelectorAll('td, th')
       expect(cells?.length).toBeGreaterThan(0)
-      
+
       // Verify the schema supports alignment attributes
       // (even if not currently populated by the remark plugin)
-      const cellTexts = Array.from(cells).map(cell => cell.textContent?.trim())
+      const cellTexts = Array.from(cells).map((cell) =>
+        cell.textContent?.trim()
+      )
       expect(cellTexts).toContain('Cell 1')
       expect(cellTexts).toContain('Data 1')
     }
   })
 })
-

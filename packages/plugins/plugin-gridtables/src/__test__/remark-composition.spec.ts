@@ -3,7 +3,7 @@ import { defaultValueCtx, Editor, editorViewCtx } from '@milkdown/core'
 import { commonmark } from '@milkdown/preset-commonmark'
 import { expect, it, describe } from 'vitest'
 
-import { gridTables, remarkGridTablesComposed, remarkGridTablesLegacy } from '..'
+import { gridTables, remarkGridTables } from '..'
 
 describe('Grid Tables Remark Composition', () => {
   it('should work when loaded after commonmark', async () => {
@@ -34,7 +34,9 @@ describe('Grid Tables Remark Composition', () => {
     expect(table).toBeTruthy()
 
     if (table) {
-      const cellTexts = Array.from(table.querySelectorAll('td, th')).map(cell => cell.textContent?.trim())
+      const cellTexts = Array.from(table.querySelectorAll('td, th')).map(
+        (cell) => cell.textContent?.trim()
+      )
       expect(cellTexts).toContain('Table Headings')
       expect(cellTexts).toContain('Here')
       expect(cellTexts).toContain('cell')
@@ -58,32 +60,24 @@ describe('Grid Tables Remark Composition', () => {
       get: () => [mockPluginWithTable, mockPluginGFM, mockPluginOther],
     } as any
 
-    // remarkGridTablesComposed is a $Remark instance with plugin and options
-    expect(remarkGridTablesComposed).toBeDefined()
-    expect(remarkGridTablesComposed.plugin).toBeDefined()
-    expect(remarkGridTablesComposed.options).toBeDefined()
+    // remarkGridTables is a $Remark instance with plugin and options
+    expect(remarkGridTables).toBeDefined()
+    expect(remarkGridTables.plugin).toBeDefined()
+    expect(remarkGridTables.options).toBeDefined()
   })
 
-  it('should handle both plugin types properly', () => {
-    // Both plugins should be $Remark instances
-    expect(remarkGridTablesLegacy).toBeDefined()
-    expect(remarkGridTablesLegacy.plugin).toBeDefined()
-    expect(remarkGridTablesLegacy.options).toBeDefined()
-
-    expect(remarkGridTablesComposed).toBeDefined()
-    expect(remarkGridTablesComposed.plugin).toBeDefined()
-    expect(remarkGridTablesComposed.options).toBeDefined()
+  it('should handle plugin correctly', () => {
+    // The plugin should be a $Remark instance
+    expect(remarkGridTables).toBeDefined()
+    expect(remarkGridTables.plugin).toBeDefined()
+    expect(remarkGridTables.options).toBeDefined()
   })
 
-  it('should export all remark wrapper components', () => {
-    // Verify both remark plugins are exported as $Remark instances
-    expect(remarkGridTablesComposed).toBeDefined()
-    expect(remarkGridTablesComposed.plugin).toBeDefined()
-    expect(remarkGridTablesComposed.options).toBeDefined()
-
-    expect(remarkGridTablesLegacy).toBeDefined()
-    expect(remarkGridTablesLegacy.plugin).toBeDefined()
-    expect(remarkGridTablesLegacy.options).toBeDefined()
+  it('should export remark wrapper component', () => {
+    // Verify the remark plugin is exported as a $Remark instance
+    expect(remarkGridTables).toBeDefined()
+    expect(remarkGridTables.plugin).toBeDefined()
+    expect(remarkGridTables.options).toBeDefined()
   })
 
   it('should maintain backward compatibility', async () => {
@@ -114,7 +108,9 @@ describe('Grid Tables Remark Composition', () => {
     expect(table).toBeTruthy()
 
     if (table) {
-      const cellTexts = Array.from(table.querySelectorAll('td, th')).map(cell => cell.textContent?.trim())
+      const cellTexts = Array.from(table.querySelectorAll('td, th')).map(
+        (cell) => cell.textContent?.trim()
+      )
       expect(cellTexts).toContain('Cell 1')
       expect(cellTexts).toContain('Data 1')
     }
@@ -132,9 +128,7 @@ describe('Grid Tables Remark Composition', () => {
 `
 
     const editor = Editor.make()
-    editor
-      .use(commonmark)
-      .use(gridTables)
+    editor.use(commonmark).use(gridTables)
 
     editor.config((ctx) => {
       ctx.set(defaultValueCtx, complexGridTable)
@@ -151,16 +145,23 @@ describe('Grid Tables Remark Composition', () => {
     if (table) {
       // Verify complex spanning features work post-commonmark
       const cells = table.querySelectorAll('td, th')
-      const spannedCells = Array.from(cells).filter(cell => {
+      const spannedCells = Array.from(cells).filter((cell) => {
         const colspan = cell.getAttribute('colspan')
         const rowspan = cell.getAttribute('rowspan')
-        return (colspan && parseInt(colspan) > 1) || (rowspan && parseInt(rowspan) > 1)
+        return (
+          (colspan && parseInt(colspan) > 1) ||
+          (rowspan && parseInt(rowspan) > 1)
+        )
       })
 
       expect(spannedCells.length).toBeGreaterThan(0)
 
-      const cellTexts = Array.from(cells).map(cell => cell.textContent?.trim())
-      expect(cellTexts.some(text => text?.includes('A1') || text?.includes('B1'))).toBeTruthy()
+      const cellTexts = Array.from(cells).map((cell) =>
+        cell.textContent?.trim()
+      )
+      expect(
+        cellTexts.some((text) => text?.includes('A1') || text?.includes('B1'))
+      ).toBeTruthy()
     }
   })
 })

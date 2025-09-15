@@ -3,7 +3,7 @@ import { defaultValueCtx, Editor, editorViewCtx } from '@milkdown/core'
 import { commonmark } from '@milkdown/preset-commonmark'
 import { expect, it, describe } from 'vitest'
 
-import { gridTables, gridTablesLegacy } from '../index'
+import { gridTables } from '../index'
 
 describe('Grid Tables Loading Patterns Integration', () => {
   const testCases = [
@@ -29,7 +29,12 @@ describe('Grid Tables Loading Patterns Integration', () => {
 | cell              | more |
 +-------------------+------+
 `,
-      expectedCells: ['Multi-line content that spans rows', 'Here', 'cell', 'more'],
+      expectedCells: [
+        'Multi-line content that spans rows',
+        'Here',
+        'cell',
+        'more',
+      ],
     },
     {
       name: 'Basic Table',
@@ -65,7 +70,7 @@ describe('Grid Tables Loading Patterns Integration', () => {
 +----------+----------+
 `,
       expectedCells: ['Bold', 'Italic', 'code', 'link'],
-    }
+    },
   ]
 
   describe('Post-commonmark Loading Pattern (.use(commonmark).use(gridTables))', () => {
@@ -73,8 +78,8 @@ describe('Grid Tables Loading Patterns Integration', () => {
       it(`should parse ${name} correctly`, async () => {
         const editor = Editor.make()
         editor
-          .use(commonmark)  // Load commonmark first
-          .use(gridTables)  // Then grid tables (post-commonmark pattern)
+          .use(commonmark) // Load commonmark first
+          .use(gridTables) // Then grid tables (post-commonmark pattern)
 
         editor.config((ctx) => {
           ctx.set(defaultValueCtx, markdown)
@@ -90,24 +95,26 @@ describe('Grid Tables Loading Patterns Integration', () => {
         expect(table).toBeTruthy()
 
         if (table) {
-          const cellTexts = Array.from(table.querySelectorAll('td, th')).map(cell =>
-            cell.textContent?.trim().replace(/\s+/g, ' ')
+          const cellTexts = Array.from(table.querySelectorAll('td, th')).map(
+            (cell) => cell.textContent?.trim().replace(/\s+/g, ' ')
           )
-          expectedCells.forEach(expectedText => {
-            expect(cellTexts.some(text => text?.includes(expectedText))).toBeTruthy()
+          expectedCells.forEach((expectedText) => {
+            expect(
+              cellTexts.some((text) => text?.includes(expectedText))
+            ).toBeTruthy()
           })
         }
       })
     })
   })
 
-  describe('Pre-commonmark Loading Pattern (.use(gridTablesLegacy).use(commonmark))', () => {
+  describe('Pre-commonmark Loading Pattern (.use(gridTables).use(commonmark))', () => {
     testCases.forEach(({ name, markdown, expectedCells }) => {
       it(`should parse ${name} correctly`, async () => {
         const editor = Editor.make()
         editor
-          .use(gridTablesLegacy)  // Load grid tables first (pre-commonmark pattern)
-          .use(commonmark)        // Then commonmark
+          .use(gridTables) // Load grid tables first (pre-commonmark pattern)
+          .use(commonmark) // Then commonmark
 
         editor.config((ctx) => {
           ctx.set(defaultValueCtx, markdown)
@@ -123,11 +130,13 @@ describe('Grid Tables Loading Patterns Integration', () => {
         expect(table).toBeTruthy()
 
         if (table) {
-          const cellTexts = Array.from(table.querySelectorAll('td, th')).map(cell =>
-            cell.textContent?.trim().replace(/\s+/g, ' ')
+          const cellTexts = Array.from(table.querySelectorAll('td, th')).map(
+            (cell) => cell.textContent?.trim().replace(/\s+/g, ' ')
           )
-          expectedCells.forEach(expectedText => {
-            expect(cellTexts.some(text => text?.includes(expectedText))).toBeTruthy()
+          expectedCells.forEach((expectedText) => {
+            expect(
+              cellTexts.some((text) => text?.includes(expectedText))
+            ).toBeTruthy()
           })
         }
       })
@@ -139,14 +148,10 @@ describe('Grid Tables Loading Patterns Integration', () => {
       it(`should produce identical results for ${name} with both loading patterns`, async () => {
         // Create two editors with different loading patterns
         const postEditor = Editor.make()
-        postEditor
-          .use(commonmark)
-          .use(gridTables)
+        postEditor.use(commonmark).use(gridTables)
 
         const preEditor = Editor.make()
-        preEditor
-          .use(gridTablesLegacy)
-          .use(commonmark)
+        preEditor.use(gridTables).use(commonmark)
 
         // Configure both with the same content
         postEditor.config((ctx) => {
@@ -164,8 +169,12 @@ describe('Grid Tables Loading Patterns Integration', () => {
         const postView = postEditor.ctx.get(editorViewCtx)
         const preView = preEditor.ctx.get(editorViewCtx)
 
-        const postTable = postView.dom.querySelector('table[data-type="grid-table"]')
-        const preTable = preView.dom.querySelector('table[data-type="grid-table"]')
+        const postTable = postView.dom.querySelector(
+          'table[data-type="grid-table"]'
+        )
+        const preTable = preView.dom.querySelector(
+          'table[data-type="grid-table"]'
+        )
 
         // Both should have tables
         expect(postTable).toBeTruthy()
@@ -173,11 +182,11 @@ describe('Grid Tables Loading Patterns Integration', () => {
 
         if (postTable && preTable) {
           // Compare cell contents
-          const postCells = Array.from(postTable.querySelectorAll('td, th')).map(cell =>
-            cell.textContent?.trim().replace(/\s+/g, ' ')
-          )
-          const preCells = Array.from(preTable.querySelectorAll('td, th')).map(cell =>
-            cell.textContent?.trim().replace(/\s+/g, ' ')
+          const postCells = Array.from(
+            postTable.querySelectorAll('td, th')
+          ).map((cell) => cell.textContent?.trim().replace(/\s+/g, ' '))
+          const preCells = Array.from(preTable.querySelectorAll('td, th')).map(
+            (cell) => cell.textContent?.trim().replace(/\s+/g, ' ')
           )
 
           expect(postCells).toEqual(preCells)
@@ -188,7 +197,9 @@ describe('Grid Tables Loading Patterns Integration', () => {
           expect(postRows).toBe(preRows)
 
           // Compare table attributes
-          expect(postTable.getAttribute('data-type')).toBe(preTable.getAttribute('data-type'))
+          expect(postTable.getAttribute('data-type')).toBe(
+            preTable.getAttribute('data-type')
+          )
         }
       })
     })
@@ -211,9 +222,7 @@ describe('Grid Tables Loading Patterns Integration', () => {
 `
 
       const editor = Editor.make()
-      editor
-        .use(commonmark)
-        .use(gridTables)
+      editor.use(commonmark).use(gridTables)
 
       editor.config((ctx) => {
         ctx.set(defaultValueCtx, mixedMarkdown)
@@ -226,16 +235,18 @@ describe('Grid Tables Loading Patterns Integration', () => {
 
       // Should have both regular tables and grid tables
       const allTables = dom.querySelectorAll('table')
-      const gridTablesElements = dom.querySelectorAll('table[data-type="grid-table"]')
+      const gridTablesElements = dom.querySelectorAll(
+        'table[data-type="grid-table"]'
+      )
 
       expect(allTables.length).toBeGreaterThanOrEqual(1)
       expect(gridTablesElements.length).toBe(1)
 
       // Verify grid table content
       const gridTable = gridTablesElements[0]
-      const gridCellTexts = Array.from(gridTable.querySelectorAll('td, th')).map(cell =>
-        cell.textContent?.trim()
-      )
+      const gridCellTexts = Array.from(
+        gridTable.querySelectorAll('td, th')
+      ).map((cell) => cell.textContent?.trim())
       expect(gridCellTexts).toContain('Grid')
       expect(gridCellTexts).toContain('Table')
       expect(gridCellTexts).toContain('C')
@@ -258,9 +269,7 @@ describe('Grid Tables Loading Patterns Integration', () => {
 `
 
       const editor = Editor.make()
-      editor
-        .use(gridTablesLegacy)
-        .use(commonmark)
+      editor.use(gridTables).use(commonmark)
 
       editor.config((ctx) => {
         ctx.set(defaultValueCtx, mixedMarkdown)
@@ -273,16 +282,18 @@ describe('Grid Tables Loading Patterns Integration', () => {
 
       // Should have both regular tables and grid tables
       const allTables = dom.querySelectorAll('table')
-      const gridTablesElements = dom.querySelectorAll('table[data-type="grid-table"]')
+      const gridTablesElements = dom.querySelectorAll(
+        'table[data-type="grid-table"]'
+      )
 
       expect(allTables.length).toBeGreaterThanOrEqual(1)
       expect(gridTablesElements.length).toBe(1)
 
       // Verify grid table content
       const gridTable = gridTablesElements[0]
-      const gridCellTexts = Array.from(gridTable.querySelectorAll('td, th')).map(cell =>
-        cell.textContent?.trim()
-      )
+      const gridCellTexts = Array.from(
+        gridTable.querySelectorAll('td, th')
+      ).map((cell) => cell.textContent?.trim())
       expect(gridCellTexts).toContain('Grid')
       expect(gridCellTexts).toContain('Table')
       expect(gridCellTexts).toContain('C')
@@ -308,8 +319,14 @@ describe('Grid Tables Loading Patterns Integration', () => {
 
       // Test both patterns
       const patterns = [
-        { name: 'post-commonmark', setup: (editor: Editor) => editor.use(commonmark).use(gridTables) },
-        { name: 'pre-commonmark', setup: (editor: Editor) => editor.use(gridTablesLegacy).use(commonmark) }
+        {
+          name: 'post-commonmark',
+          setup: (editor: Editor) => editor.use(commonmark).use(gridTables),
+        },
+        {
+          name: 'pre-commonmark',
+          setup: (editor: Editor) => editor.use(gridTables).use(commonmark),
+        },
       ]
 
       for (const pattern of patterns) {
@@ -330,17 +347,17 @@ describe('Grid Tables Loading Patterns Integration', () => {
 
         // Verify first table (single column)
         const firstTable = tables[0]
-        const firstCells = Array.from(firstTable.querySelectorAll('td, th')).map(cell =>
-          cell.textContent?.trim()
-        )
+        const firstCells = Array.from(
+          firstTable.querySelectorAll('td, th')
+        ).map((cell) => cell.textContent?.trim())
         expect(firstCells).toContain('Solo')
         expect(firstCells).toContain('Cell')
 
         // Verify second table (minimal)
         const secondTable = tables[1]
-        const secondCells = Array.from(secondTable.querySelectorAll('td, th')).map(cell =>
-          cell.textContent?.trim()
-        )
+        const secondCells = Array.from(
+          secondTable.querySelectorAll('td, th')
+        ).map((cell) => cell.textContent?.trim())
         expect(secondCells).toContain('A')
         expect(secondCells).toContain('B')
         expect(secondCells).toContain('1')
@@ -349,25 +366,16 @@ describe('Grid Tables Loading Patterns Integration', () => {
     })
   })
 
-  describe('Plugin Key Consistency', () => {
-    it('should have consistent plugin keys between both exports', () => {
+  describe('Plugin Structure', () => {
+    it('should have plugin keys defined', () => {
       expect(gridTables.key).toBeDefined()
       expect(gridTables.pluginKey).toBeDefined()
-      expect(gridTablesLegacy.key).toBeDefined()
-      expect(gridTablesLegacy.pluginKey).toBeDefined()
-
-      // Keys should be identical between both exports
-      expect(gridTables.key).toEqual(gridTablesLegacy.key)
-      expect(gridTables.pluginKey).toEqual(gridTablesLegacy.pluginKey)
     })
 
     it('should have correct plugin array structure', () => {
-      // Both exports should be arrays with key/pluginKey properties
+      // Export should be an array with key/pluginKey properties
       expect(Array.isArray(gridTables)).toBeTruthy()
-      expect(Array.isArray(gridTablesLegacy)).toBeTruthy()
-
-      // Both should have the same length (same plugins, just different remark wrapper)
-      expect(gridTables.length).toBe(gridTablesLegacy.length)
+      expect(gridTables.length).toBeGreaterThan(0)
     })
   })
 })

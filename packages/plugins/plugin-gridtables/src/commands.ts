@@ -51,14 +51,21 @@ export function createGridTable(
   // Create cells for the table
   const createCell = (content?: Node) => {
     const cellNode = gridTableCellSchema.type(ctx).createAndFill()
-    return cellNode || gridTableCellSchema.type(ctx).create(
-      { colSpan: 1, rowSpan: 1, align: null, valign: null },
-      content ? [content] : [paragraphSchema.type(ctx).createAndFill()!]
+    return (
+      cellNode ||
+      gridTableCellSchema
+        .type(ctx)
+        .create(
+          { colSpan: 1, rowSpan: 1, align: null, valign: null },
+          content ? [content] : [paragraphSchema.type(ctx).createAndFill()!]
+        )
     )
   }
 
   const createRow = (cellCount: number) => {
-    const cells = Array(cellCount).fill(0).map(() => createCell())
+    const cells = Array(cellCount)
+      .fill(0)
+      .map(() => createCell())
     return gridTableRowSchema.type(ctx).create(null, cells)
   }
 
@@ -72,10 +79,12 @@ export function createGridTable(
 
   // Add body rows (subtract 1 if header exists)
   const bodyRowCount = hasHeader ? rowsCount - 1 : rowsCount
-  const bodyRows = Array(Math.max(1, bodyRowCount)).fill(0).map(() => createRow(colsCount))
+  const bodyRows = Array(Math.max(1, bodyRowCount))
+    .fill(0)
+    .map(() => createRow(colsCount))
   children.push(gridTableBodySchema.type(ctx).create(null, bodyRows))
 
-  // Add footer if requested  
+  // Add footer if requested
   if (hasFooter) {
     const footerRows = [createRow(colsCount)]
     children.push(gridTableFootSchema.type(ctx).create(null, footerRows))
@@ -88,12 +97,12 @@ export function createGridTable(
 export const insertGridTableCommand = $command(
   'InsertGridTable',
   (ctx) =>
-    ({ 
-      rows = 3, 
-      cols = 3, 
-      hasHeader = true, 
-      hasFooter = false 
-    }: { 
+    ({
+      rows = 3,
+      cols = 3,
+      hasHeader = true,
+      hasFooter = false,
+    }: {
       rows?: number
       cols?: number
       hasHeader?: boolean
@@ -102,10 +111,10 @@ export const insertGridTableCommand = $command(
     (state, dispatch) => {
       const { selection, tr } = state
       const { from } = selection
-      
+
       const table = createGridTable(ctx, rows, cols, hasHeader, hasFooter)
       const _tr = tr.replaceSelectionWith(table)
-      
+
       // Position cursor in first cell
       const sel = Selection.findFrom(_tr.doc.resolve(from + 1), 1, true)
       if (sel) _tr.setSelection(sel)
@@ -153,7 +162,7 @@ export const goToNextGridCellCommand = $command(
   'GoToNextGridCell',
   (ctx) => () => (state, dispatch) => {
     if (!isInGridTable(state, ctx)) return false
-    
+
     const { $head: _$head } = state.selection
     const cell = findParentGridTableCell(state, ctx)
     if (!cell) return false
@@ -199,7 +208,7 @@ export const goToPrevGridCellCommand = $command(
   'GoToPrevGridCell',
   (ctx) => () => (state, dispatch) => {
     if (!isInGridTable(state, ctx)) return false
-    
+
     const cell = findParentGridTableCell(state, ctx)
     if (!cell) return false
 
@@ -210,10 +219,7 @@ export const goToPrevGridCellCommand = $command(
 
     const { from, to } = table
     state.doc.nodesBetween(from, to, (node, pos) => {
-      if (
-        node.type === gridTableCellSchema.type(ctx) &&
-        pos < cell.from
-      ) {
+      if (node.type === gridTableCellSchema.type(ctx) && pos < cell.from) {
         prevCellPos = pos + 1 // Position inside the cell
       }
     })
@@ -255,27 +261,30 @@ export const addGridRowAfterCommand = $command(
 
     // Count columns in current row
     let colCount = 0
-    currentRow.node.forEach(node => {
+    currentRow.node.forEach((node) => {
       if (node.type === gridTableCellSchema.type(ctx)) {
         colCount += node.attrs.colSpan || 1
       }
     })
 
     // Create new row with same number of columns
-    const cells = Array(colCount).fill(0).map(() => {
-      const cellContent = paragraphSchema.type(ctx).createAndFill()!
-      return gridTableCellSchema.type(ctx).create(
-        { colSpan: 1, rowSpan: 1, align: null, valign: null },
-        [cellContent]
-      )
-    })
-    
+    const cells = Array(colCount)
+      .fill(0)
+      .map(() => {
+        const cellContent = paragraphSchema.type(ctx).createAndFill()!
+        return gridTableCellSchema
+          .type(ctx)
+          .create({ colSpan: 1, rowSpan: 1, align: null, valign: null }, [
+            cellContent,
+          ])
+      })
+
     const newRow = gridTableRowSchema.type(ctx).create(null, cells)
-    
+
     // Insert the new row after the current row
     const insertPos = currentRow.from + currentRow.node.nodeSize
     const tr = state.tr.insert(insertPos, newRow)
-    
+
     dispatch?.(tr)
     return true
   }
@@ -297,26 +306,29 @@ export const addGridRowBeforeCommand = $command(
 
     // Count columns in current row
     let colCount = 0
-    currentRow.node.forEach(node => {
+    currentRow.node.forEach((node) => {
       if (node.type === gridTableCellSchema.type(ctx)) {
         colCount += node.attrs.colSpan || 1
       }
     })
 
     // Create new row with same number of columns
-    const cells = Array(colCount).fill(0).map(() => {
-      const cellContent = paragraphSchema.type(ctx).createAndFill()!
-      return gridTableCellSchema.type(ctx).create(
-        { colSpan: 1, rowSpan: 1, align: null, valign: null },
-        [cellContent]
-      )
-    })
-    
+    const cells = Array(colCount)
+      .fill(0)
+      .map(() => {
+        const cellContent = paragraphSchema.type(ctx).createAndFill()!
+        return gridTableCellSchema
+          .type(ctx)
+          .create({ colSpan: 1, rowSpan: 1, align: null, valign: null }, [
+            cellContent,
+          ])
+      })
+
     const newRow = gridTableRowSchema.type(ctx).create(null, cells)
-    
+
     // Insert the new row before the current row
     const tr = state.tr.insert(currentRow.from, newRow)
-    
+
     dispatch?.(tr)
     return true
   }
@@ -351,8 +363,11 @@ export const deleteGridRowCommand = $command(
     }
 
     // Delete the row
-    const tr = state.tr.delete(currentRow.from, currentRow.from + currentRow.node.nodeSize)
-    
+    const tr = state.tr.delete(
+      currentRow.from,
+      currentRow.from + currentRow.node.nodeSize
+    )
+
     dispatch?.(tr)
     return true
   }
@@ -366,18 +381,20 @@ withMeta(deleteGridRowCommand, {
 /// Command to set cell alignment
 export const setGridCellAlignCommand = $command(
   'SetGridCellAlign',
-  (ctx) => (align?: 'left' | 'center' | 'right' | 'justify' | null) => (state, dispatch) => {
-    const cell = findParentGridTableCell(state, ctx)
-    if (!cell) return false
+  (ctx) =>
+    (align?: 'left' | 'center' | 'right' | 'justify' | null) =>
+    (state, dispatch) => {
+      const cell = findParentGridTableCell(state, ctx)
+      if (!cell) return false
 
-    const tr = state.tr.setNodeMarkup(cell.from, undefined, {
-      ...cell.node.attrs,
-      align: align ?? null,
-    })
+      const tr = state.tr.setNodeMarkup(cell.from, undefined, {
+        ...cell.node.attrs,
+        align: align ?? null,
+      })
 
-    dispatch?.(tr)
-    return true
-  }
+      dispatch?.(tr)
+      return true
+    }
 )
 
 withMeta(setGridCellAlignCommand, {
@@ -388,18 +405,20 @@ withMeta(setGridCellAlignCommand, {
 /// Command to set cell vertical alignment
 export const setGridCellVAlignCommand = $command(
   'SetGridCellVAlign',
-  (ctx) => (valign?: 'top' | 'middle' | 'bottom' | null) => (state, dispatch) => {
-    const cell = findParentGridTableCell(state, ctx)
-    if (!cell) return false
+  (ctx) =>
+    (valign?: 'top' | 'middle' | 'bottom' | null) =>
+    (state, dispatch) => {
+      const cell = findParentGridTableCell(state, ctx)
+      if (!cell) return false
 
-    const tr = state.tr.setNodeMarkup(cell.from, undefined, {
-      ...cell.node.attrs,
-      valign: valign ?? null,
-    })
+      const tr = state.tr.setNodeMarkup(cell.from, undefined, {
+        ...cell.node.attrs,
+        valign: valign ?? null,
+      })
 
-    dispatch?.(tr)
-    return true
-  }
+      dispatch?.(tr)
+      return true
+    }
 )
 
 withMeta(setGridCellVAlignCommand, {
@@ -442,7 +461,10 @@ export const addGridColumnAfterCommand = $command(
       | typeof gridTableFootSchema
 
     const addColumnToSection = (sectionType: SectionSchema) => {
-      const sectionNode = findParentNodeType(state.selection.$head, sectionType.type(ctx))
+      const sectionNode = findParentNodeType(
+        state.selection.$head,
+        sectionType.type(ctx)
+      )
       if (!sectionNode) return
 
       sectionNode.node.forEach((rowNode, _rowIndex) => {
@@ -453,10 +475,11 @@ export const addGridColumnAfterCommand = $command(
         rowNode.forEach((cellNode, _cellOffset) => {
           if (currentCol === columnIndex) {
             // Create new cell
-            const newCell = gridTableCellSchema.type(ctx).create(
-              { colSpan: 1, rowSpan: 1, align: null, valign: null },
-              [paragraphSchema.type(ctx).createAndFill()!]
-            )
+            const newCell = gridTableCellSchema
+              .type(ctx)
+              .create({ colSpan: 1, rowSpan: 1, align: null, valign: null }, [
+                paragraphSchema.type(ctx).createAndFill()!,
+              ])
             tr.insert(insertPos + offset, newCell)
             offset += newCell.nodeSize
             return false // Stop iteration
@@ -477,7 +500,7 @@ export const addGridColumnAfterCommand = $command(
       dispatch?.(tr)
       return true
     }
-    
+
     return false
   }
 )
@@ -509,16 +532,20 @@ export const addGridColumnBeforeCommand = $command(
       | typeof gridTableFootSchema
 
     const addColumnToSection = (sectionType: SectionSchema) => {
-      const sectionNode = findParentNodeType(state.selection.$head, sectionType.type(ctx))
+      const sectionNode = findParentNodeType(
+        state.selection.$head,
+        sectionType.type(ctx)
+      )
       if (!sectionNode) return
 
       sectionNode.node.forEach((_rowNode) => {
         // Insert new cell at the beginning of each row in this section
         const rowStart = sectionNode.from + 1
-        const newCell = gridTableCellSchema.type(ctx).create(
-          { colSpan: 1, rowSpan: 1, align: null, valign: null },
-          [paragraphSchema.type(ctx).createAndFill()!]
-        )
+        const newCell = gridTableCellSchema
+          .type(ctx)
+          .create({ colSpan: 1, rowSpan: 1, align: null, valign: null }, [
+            paragraphSchema.type(ctx).createAndFill()!,
+          ])
         tr.insert(rowStart + offset, newCell)
         offset += newCell.nodeSize
       })
@@ -533,7 +560,7 @@ export const addGridColumnBeforeCommand = $command(
       dispatch?.(tr)
       return true
     }
-    
+
     return false
   }
 )
@@ -605,7 +632,11 @@ export const mergeGridCellRightCommand = $command(
     let nextCellPos: number | null = null
     row.node.forEach((node, offset) => {
       const nodePos = row.from + 1 + offset
-      if (nodePos > cell.from && node.type === gridTableCellSchema.type(ctx) && nextCellPos === null) {
+      if (
+        nodePos > cell.from &&
+        node.type === gridTableCellSchema.type(ctx) &&
+        nextCellPos === null
+      ) {
         nextCellPos = nodePos
         return false
       }
@@ -620,7 +651,8 @@ export const mergeGridCellRightCommand = $command(
       const tr = state.tr
         .setNodeMarkup(cell.from, undefined, {
           ...cell.node.attrs,
-          colSpan: (cell.node.attrs.colSpan || 1) + (nextCellNode.attrs.colSpan || 1),
+          colSpan:
+            (cell.node.attrs.colSpan || 1) + (nextCellNode.attrs.colSpan || 1),
         })
         .delete(nextCellPos, nextCellPos + nextCellNode.nodeSize)
 
@@ -648,10 +680,11 @@ export const splitGridCellCommand = $command(
     if (colSpan <= 1) return false // Can't split single-column cell
 
     // Create new cell
-    const newCell = gridTableCellSchema.type(ctx).create(
-      { colSpan: 1, rowSpan: rowSpan, align: null, valign: null },
-      [paragraphSchema.type(ctx).createAndFill()!]
-    )
+    const newCell = gridTableCellSchema
+      .type(ctx)
+      .create({ colSpan: 1, rowSpan: rowSpan, align: null, valign: null }, [
+        paragraphSchema.type(ctx).createAndFill()!,
+      ])
 
     // Update current cell colSpan and insert new cell
     const tr = state.tr

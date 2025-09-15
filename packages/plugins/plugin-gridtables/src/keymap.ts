@@ -20,7 +20,7 @@ export const gridTableKeymap = $useKeymap('gridTableKeymap', {
     },
   },
 
-  /// Navigate to previous cell with Shift-Tab  
+  /// Navigate to previous cell with Shift-Tab
   PrevGridCell: {
     shortcuts: 'Shift-Tab',
     command: (ctx) => {

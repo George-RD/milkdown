@@ -37,6 +37,7 @@ Editor.make()
 - @splitGridCellCommand
 
 Example:
+
 ```ts
 import { callCommand } from '@milkdown/kit/utils'
 import { insertGridTableCommand } from '@milkdown/kit/plugin/gridtables'
@@ -60,4 +61,3 @@ editor.action(callCommand(insertGridTableCommand.key, { rows: 4, cols: 5 }))
 ## Input Rules
 
 - @gridTableInputRules
-

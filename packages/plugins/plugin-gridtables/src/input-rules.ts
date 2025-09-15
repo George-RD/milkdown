@@ -13,7 +13,7 @@ export const gridTableInputRule = $inputRule((ctx) => {
       const [, rowsStr, colsStr] = match
       const rows = rowsStr ? parseInt(rowsStr, 10) : 3
       const cols = colsStr ? parseInt(colsStr, 10) : 3
-      
+
       // Validate dimensions
       if (rows < 1 || rows > 20 || cols < 1 || cols > 10) {
         return null
@@ -39,7 +39,7 @@ export const gridTableFullInputRule = $inputRule((ctx) => {
       const [, rowsStr, colsStr] = match
       const rows = rowsStr ? parseInt(rowsStr, 10) : 3
       const cols = colsStr ? parseInt(colsStr, 10) : 3
-      
+
       // Validate dimensions
       if (rows < 2 || rows > 20 || cols < 1 || cols > 10) {
         return null

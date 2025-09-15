@@ -64,4 +64,3 @@ Object.defineProperty(Range.prototype, 'getBoundingClientRect', {
 Object.defineProperty(Element.prototype, 'scrollIntoView', {
   value: function () {},
 })
-

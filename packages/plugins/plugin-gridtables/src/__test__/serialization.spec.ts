@@ -8,9 +8,7 @@ import { gridTables } from '..'
 
 function createEditor() {
   const editor = Editor.make()
-  editor
-    .use(commonmark)
-    .use(gridTables)
+  editor.use(commonmark).use(gridTables)
   return editor
 }
 
@@ -33,7 +31,7 @@ describe('Grid Tables Serialization', () => {
 +-------------------+------+`
 
     const output = await testRoundTrip(input)
-    
+
     // Check that we get back a grid table format
     expect(output).toContain('+')
     expect(output).toContain('|')
@@ -51,9 +49,9 @@ describe('Grid Tables Serialization', () => {
 +--------+-------------------+`
 
     const output = await testRoundTrip(input)
-    
+
     expect(output).toContain('Header')
-    expect(output).toContain('Spanning') 
+    expect(output).toContain('Spanning')
     expect(output).toContain('Column')
     expect(output).toContain('Normal')
     expect(output).toContain('Two Cols')
@@ -67,7 +65,7 @@ describe('Grid Tables Serialization', () => {
 +-------------------+------------------+`
 
     const output = await testRoundTrip(input)
-    
+
     // Should preserve some form of formatting (adobe plugin may use different syntax)
     expect(output).toMatch(/(\*\*.*\*\*|\+\+.*\+\+)/) // Bold formatting (markdown or adobe format)
     expect(output).toMatch(/(\*.*\*|\+.*\+)/) // Italic formatting (markdown or adobe format)
@@ -85,7 +83,7 @@ describe('Grid Tables Serialization', () => {
 +---------------+---------------+`
 
     const output = await testRoundTrip(input)
-    
+
     // Should handle special characters properly
     expect(output).toBeDefined()
     expect(output.length).toBeGreaterThan(0)
@@ -101,7 +99,7 @@ describe('Grid Tables Serialization', () => {
 +-------------------+-------------------+`
 
     const output = await testRoundTrip(input)
-    
+
     expect(output).toContain('Multi-line')
     expect(output).toContain('content here')
     expect(output).toContain('Another')
@@ -120,7 +118,7 @@ describe('Grid Tables Serialization', () => {
 +----------------+----------------+`
 
     const output = await testRoundTrip(input)
-    
+
     // Should maintain the section structure
     expect(output).toContain('Header 1')
     expect(output).toContain('Header 2')
@@ -140,7 +138,7 @@ describe('Grid Tables Serialization', () => {
 +-----------------+--------+`
 
     const output = await testRoundTrip(input)
-    
+
     // Test for proper span handling in serialization
     expect(output).toContain('A1')
     expect(output).toContain('B1')
@@ -158,7 +156,7 @@ describe('Grid Tables Serialization', () => {
 +--------+--------+`
 
     const output = await testRoundTrip(input)
-    
+
     expect(output).toContain('Cell 1')
     expect(output).toContain('Cell 4')
     // Should handle empty cells without errors
@@ -174,7 +172,7 @@ describe('Grid Tables Serialization', () => {
 +-----+---------------------------------------+-------+`
 
     const output = await testRoundTrip(input)
-    
+
     expect(output).toContain('ID')
     expect(output).toContain('Description')
     expect(output).toContain('Value')
@@ -194,7 +192,7 @@ describe('Grid Tables Serialization', () => {
 +========+========+`
 
     const output = await testRoundTrip(input)
-    
+
     expect(output).toContain('Header')
     expect(output).toContain('Body')
     expect(output).toContain('Footer')
@@ -208,7 +206,7 @@ describe('Grid Tables Serialization', () => {
 +--------+---------+--------+`
 
     const output = await testRoundTrip(input)
-    
+
     // Basic content should be preserved
     expect(output).toContain('Left')
     expect(output).toContain('Center')
@@ -227,7 +225,7 @@ describe('Grid Tables Serialization', () => {
 +------------------+------------------+`
 
     const output = await testRoundTrip(input)
-    
+
     // Should preserve various markdown formatting
     expect(output).toBeDefined()
     expect(output.length).toBeGreaterThan(0)
@@ -241,4 +239,3 @@ describe('Grid Tables Serialization', () => {
     expect(output).toContain('More normal text')
   })
 })
-

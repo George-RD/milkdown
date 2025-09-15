@@ -265,7 +265,7 @@ export const gridTableCellSchema = $nodeSchema('gridTableCell', (ctx) => ({
       tag: 'td',
       getAttrs: (dom) => {
         if (!(dom instanceof HTMLElement)) return false
-        
+
         return {
           colSpan: parseInt(dom.getAttribute('colspan') || '1', 10),
           rowSpan: parseInt(dom.getAttribute('rowspan') || '1', 10),
@@ -278,7 +278,7 @@ export const gridTableCellSchema = $nodeSchema('gridTableCell', (ctx) => ({
       tag: 'th',
       getAttrs: (dom) => {
         if (!(dom instanceof HTMLElement)) return false
-        
+
         return {
           colSpan: parseInt(dom.getAttribute('colspan') || '1', 10),
           rowSpan: parseInt(dom.getAttribute('rowspan') || '1', 10),

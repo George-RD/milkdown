@@ -47,7 +47,9 @@ describe('Grid Tables ProseMirror Integration', () => {
       editor.action(callCommand(insertGridTableCommand.key))
 
       // Check that table was created
-      const tableElement = view.dom.querySelector('table[data-type="grid-table"]')
+      const tableElement = view.dom.querySelector(
+        'table[data-type="grid-table"]'
+      )
       expect(tableElement).toBeTruthy()
 
       // Check structure: should have thead and tbody
@@ -68,16 +70,24 @@ describe('Grid Tables ProseMirror Integration', () => {
       const view = editor.ctx.get(editorViewCtx)
 
       // Insert 4x5 table
-      editor.action(callCommand(insertGridTableCommand.key, {
-        rows: 4,
-        cols: 5,
-        hasHeader: true,
-        hasFooter: false
-      }))
+      editor.action(
+        callCommand(insertGridTableCommand.key, {
+          rows: 4,
+          cols: 5,
+          hasHeader: true,
+          hasFooter: false,
+        })
+      )
 
-      const tableElement = view.dom.querySelector('table[data-type="grid-table"]')
-      const headerCells = tableElement?.querySelector('thead')?.querySelectorAll('td')
-      const bodyRows = tableElement?.querySelector('tbody')?.querySelectorAll('tr')
+      const tableElement = view.dom.querySelector(
+        'table[data-type="grid-table"]'
+      )
+      const headerCells = tableElement
+        ?.querySelector('thead')
+        ?.querySelectorAll('td')
+      const bodyRows = tableElement
+        ?.querySelector('tbody')
+        ?.querySelectorAll('tr')
 
       expect(headerCells?.length).toBe(5)
       expect(bodyRows?.length).toBe(3) // 4 total - 1 header = 3 body rows
@@ -88,14 +98,18 @@ describe('Grid Tables ProseMirror Integration', () => {
       const view = editor.ctx.get(editorViewCtx)
 
       // Insert table with footer
-      editor.action(callCommand(insertGridTableCommand.key, {
-        rows: 4,
-        cols: 3,
-        hasHeader: true,
-        hasFooter: true
-      }))
+      editor.action(
+        callCommand(insertGridTableCommand.key, {
+          rows: 4,
+          cols: 3,
+          hasHeader: true,
+          hasFooter: true,
+        })
+      )
 
-      const tableElement = view.dom.querySelector('table[data-type="grid-table"]')
+      const tableElement = view.dom.querySelector(
+        'table[data-type="grid-table"]'
+      )
       const thead = tableElement?.querySelector('thead')
       const tbody = tableElement?.querySelector('tbody')
       const tfoot = tableElement?.querySelector('tfoot')
@@ -127,12 +141,16 @@ describe('Grid Tables ProseMirror Integration', () => {
 
     it('should navigate to next cell with Tab', async () => {
       const view = editor.ctx.get(editorViewCtx)
-      
+
       // Position cursor in first cell
       const firstCell = view.dom.querySelector('td')
       if (firstCell) {
         const pos = view.posAtDOM(firstCell, 0)
-        view.dispatch(view.state.tr.setSelection(view.state.selection.constructor.near(view.state.doc.resolve(pos))))
+        view.dispatch(
+          view.state.tr.setSelection(
+            view.state.selection.constructor.near(view.state.doc.resolve(pos))
+          )
+        )
       }
 
       // Navigate to next cell
@@ -142,12 +160,16 @@ describe('Grid Tables ProseMirror Integration', () => {
 
     it('should navigate to previous cell with Shift+Tab', async () => {
       const view = editor.ctx.get(editorViewCtx)
-      
+
       // Position cursor in second cell
       const cells = view.dom.querySelectorAll('td')
       if (cells.length >= 2) {
         const pos = view.posAtDOM(cells[1], 0)
-        view.dispatch(view.state.tr.setSelection(view.state.selection.constructor.near(view.state.doc.resolve(pos))))
+        view.dispatch(
+          view.state.tr.setSelection(
+            view.state.selection.constructor.near(view.state.doc.resolve(pos))
+          )
+        )
       }
 
       // Navigate to previous cell
@@ -171,7 +193,7 @@ describe('Grid Tables ProseMirror Integration', () => {
 
     it('should add row after current row', async () => {
       const view = editor.ctx.get(editorViewCtx)
-      
+
       // Count initial rows
       const initialRowCount = view.dom.querySelectorAll('tr').length
 
@@ -186,7 +208,7 @@ describe('Grid Tables ProseMirror Integration', () => {
 
     it('should add row before current row', async () => {
       const view = editor.ctx.get(editorViewCtx)
-      
+
       const initialRowCount = view.dom.querySelectorAll('tr').length
 
       // Add row before
@@ -199,12 +221,12 @@ describe('Grid Tables ProseMirror Integration', () => {
 
     it('should delete current row', async () => {
       const view = editor.ctx.get(editorViewCtx)
-      
+
       const initialRowCount = view.dom.querySelectorAll('tr').length
 
       // Delete row (should work if not the only body row)
       const result = editor.action(callCommand(deleteGridRowCommand.key))
-      
+
       if (result) {
         const newRowCount = view.dom.querySelectorAll('tr').length
         expect(newRowCount).toBe(initialRowCount - 1)
@@ -226,7 +248,7 @@ describe('Grid Tables ProseMirror Integration', () => {
 
     it('should add column after current column', async () => {
       const view = editor.ctx.get(editorViewCtx)
-      
+
       // Count initial cells in first row
       const firstRow = view.dom.querySelector('tr')
       const initialCellCount = firstRow?.querySelectorAll('td').length || 0
@@ -236,15 +258,20 @@ describe('Grid Tables ProseMirror Integration', () => {
       const firstCell = view.dom.querySelector('td')
       if (firstCell) {
         const pos = view.posAtDOM(firstCell, 0)
-        view.dispatch(view.state.tr.setSelection(view.state.selection.constructor.near(view.state.doc.resolve(pos))))
+        view.dispatch(
+          view.state.tr.setSelection(
+            view.state.selection.constructor.near(view.state.doc.resolve(pos))
+          )
+        )
       }
 
       // Add column
       const result = editor.action(callCommand(addGridColumnAfterCommand.key))
-      
+
       if (result) {
         // Check column was added to at least the first row (command partially works)
-        const finalCellCount = view.dom.querySelector('tr')?.querySelectorAll('td').length || 0
+        const finalCellCount =
+          view.dom.querySelector('tr')?.querySelectorAll('td').length || 0
         expect(finalCellCount).toBeGreaterThan(initialCellCount)
       } else {
         // If command fails, just verify it doesn't break anything
@@ -270,11 +297,17 @@ describe('Grid Tables ProseMirror Integration', () => {
       const firstCell = view.dom.querySelector('td')
       if (firstCell) {
         const pos = view.posAtDOM(firstCell, 0)
-        view.dispatch(view.state.tr.setSelection(view.state.selection.constructor.near(view.state.doc.resolve(pos))))
+        view.dispatch(
+          view.state.tr.setSelection(
+            view.state.selection.constructor.near(view.state.doc.resolve(pos))
+          )
+        )
       }
 
       // Set alignment to center
-      const result = editor.action(callCommand(setGridCellAlignCommand.key, 'center'))
+      const result = editor.action(
+        callCommand(setGridCellAlignCommand.key, 'center')
+      )
       expect(result).toBe(true)
 
       // Check that cell has alignment attributes
@@ -297,11 +330,10 @@ describe('Grid Tables ProseMirror Integration', () => {
 
       // Check for colspan attribute
       const cells = view.dom.querySelectorAll('td')
-      const hasColspan = Array.from(cells).some(cell => 
-        cell.hasAttribute('colspan') || 
-        cell.hasAttribute('rowspan')
+      const hasColspan = Array.from(cells).some(
+        (cell) => cell.hasAttribute('colspan') || cell.hasAttribute('rowspan')
       )
-      
+
       // This depends on the markdown parser correctly handling spans
       // The test verifies the DOM structure is set up to handle these attributes
       expect(cells.length).toBeGreaterThan(0)
@@ -322,7 +354,11 @@ describe('Grid Tables ProseMirror Integration', () => {
       const firstCell = view.dom.querySelector('td')
       if (firstCell) {
         const pos = view.posAtDOM(firstCell, 0)
-        view.dispatch(view.state.tr.setSelection(view.state.selection.constructor.near(view.state.doc.resolve(pos))))
+        view.dispatch(
+          view.state.tr.setSelection(
+            view.state.selection.constructor.near(view.state.doc.resolve(pos))
+          )
+        )
       }
 
       // Exit table
@@ -338,16 +374,16 @@ describe('Grid Tables ProseMirror Integration', () => {
   describe('Keyboard Integration', () => {
     it('should have keymap properly configured', async () => {
       editor = await createEditor()
-      
+
       // Check that the editor has the grid table keymap
       const view = editor.ctx.get(editorViewCtx)
       const plugins = view.state.plugins
-      
+
       // Look for our grid table plugin
-      const hasGridTablePlugin = plugins.some(plugin => 
-        plugin.key && plugin.key.toString().includes('gridTable')
+      const hasGridTablePlugin = plugins.some(
+        (plugin) => plugin.key && plugin.key.toString().includes('gridTable')
       )
-      
+
       expect(hasGridTablePlugin).toBe(true)
     })
   })
@@ -378,11 +414,17 @@ describe('Grid Tables ProseMirror Integration', () => {
   describe('Error Handling', () => {
     it('should handle commands gracefully when not in table', async () => {
       editor = await createEditor('Regular paragraph text.')
-      
+
       // Try table commands outside of table
-      const nextCellResult = editor.action(callCommand(goToNextGridCellCommand.key))
-      const addRowResult = editor.action(callCommand(addGridRowAfterCommand.key))
-      const alignResult = editor.action(callCommand(setGridCellAlignCommand.key, 'center'))
+      const nextCellResult = editor.action(
+        callCommand(goToNextGridCellCommand.key)
+      )
+      const addRowResult = editor.action(
+        callCommand(addGridRowAfterCommand.key)
+      )
+      const alignResult = editor.action(
+        callCommand(setGridCellAlignCommand.key, 'center')
+      )
 
       // Commands should return false when not applicable
       expect(nextCellResult).toBe(false)
@@ -397,11 +439,10 @@ describe('Grid Tables ProseMirror Integration', () => {
 
       // Verify editor is stable
       expect(view.state.doc.content.size).toBeGreaterThan(0)
-      
+
       // Try to insert table in valid position
       const result = editor.action(callCommand(insertGridTableCommand.key))
       expect(result).toBe(true)
     })
   })
 })
-

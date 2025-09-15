@@ -3,6 +3,7 @@
 This plan outlines high‑level issues to complete the Grid Tables plugin, keeping parity with packages/plugins/PLUGIN_DEVELOPMENT_GUIDE.md. Each issue includes a goal, development guidance, acceptance criteria, and notes. Scope is intentionally high level; implementers should follow the dev guide for patterns (array‑based composables, $command/$view/$remark, withMeta, typed APIs), repo conventions, and testing standards.
 
 ## Issue 1: UI Controls for Rows/Columns and Merge/Split
+
 - Goal
   - Provide in‑editor UI (handles/buttons) to add/remove rows and columns, set alignment/valign, and merge/split cells for grid tables, comparable to the existing table UI but supporting grid table spans and sections (head/body/foot).
 - Development
@@ -20,6 +21,7 @@ This plan outlines high‑level issues to complete the Grid Tables plugin, keepi
   - Follow Plugin Development Guide for $view, CSS naming, and command patterns; avoid cross‑package private imports. Prefer export from package entry. Type‑only imports where applicable.
 
 ## Issue 2: Slash Command Support (Insert Grid Table)
+
 - Goal
   - Add slash‑menu entries (via `@milkdown/kit/plugin/slash`) to insert grid tables with common presets (e.g., 3×3, with/without header/footer) and optional dimension input.
 - Development
@@ -34,6 +36,7 @@ This plan outlines high‑level issues to complete the Grid Tables plugin, keepi
   - Consider combining with Issue 3 if workload is small; otherwise ship independently. Follow dev guide’s slash patterns and testing guidance.
 
 ## Issue 3: Menu Items and Integration with Block Edit Menu
+
 - Goal
   - Add menu items for grid tables in the block‑edit menu (crepe feature) under a “Table” group alongside or distinct from standard tables.
 - Development
@@ -46,6 +49,7 @@ This plan outlines high‑level issues to complete the Grid Tables plugin, keepi
   - Maintain small public API surface; export from package entry only. Align naming and grouping with existing menu patterns.
 
 ## Issue 4: Storybook Styling and CSS Validation
+
 - Goal
   - Investigate and fix styling issues seen in Storybook for grid tables (determine whether plugin or Storybook integration is at fault). Ensure styles render correctly across themes and stories.
 - Development
@@ -59,21 +63,8 @@ This plan outlines high‑level issues to complete the Grid Tables plugin, keepi
 - Notes
   - Reference Theme and Styling Patterns in the dev guide. Keep CSS class names stable for e2e selectors.
 
-## Issue 5: Real‑World Kit Testing Plan (Local Consumer Repo)
-- Goal
-  - Validate the plugin end‑to‑end by consuming it from the feature branch (not npm) in a fresh repo using `@milkdown/kit`, exercising slash/menu/UI and markdown round‑trip.
-- Development
-  - Create a minimal consumer repo (vanilla or React/Vue integration) and install Milkdown packages from local builds (e.g., use `pnpm -w build` then `pnpm pack` + `pnpm add file:...` or a local registry alternative). Ensure kit re‑export path `@milkdown/kit/plugin/gridtables` is used.
-  - Test: paste canonical grid table markdown; insert via slash/menu; perform row/col/merge operations; serialize back to markdown and compare.
-  - Document exact steps so others can reproduce locally.
-- Acceptance Criteria
-  - Consumer app boots with kit imports pointing at local tarballs/paths; grid tables parse, render, and serialize correctly.
-  - All UI and slash/menu features function as in Storybook; no runtime errors; editor remains editable.
-  - A short README in the consumer repo captures setup and validation steps.
-- Notes
-  - Follow repo Setup/Build/Test commands; adhere to Conventional Commits/changesets for any user‑facing changes. Do not publish; local validation only.
-
 ## General Guidance (applies to all issues)
+
 - Follow Plugin Development Guide patterns (array‑based composables, withMeta on exports, typed contexts, $command/$view/$remark usage, markdown parse/serialize symmetry).
 - Respect monorepo conventions: kebab‑case files, type‑only imports, export via package entry. No cross‑package private imports.
 - Tests: place unit tests under `src/__test__/` (Vitest/jsdom) and extend Playwright e2e where relevant. Prefer role/text selectors.

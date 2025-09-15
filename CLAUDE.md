@@ -22,6 +22,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Milkdown is a **plugin-driven WYSIWYG markdown editor** built on ProseMirror and remark. The codebase is organized as a monorepo with the following key packages:
 
 ### Core Architecture
+
 - **`@milkdown/core`** - Core editor functionality
 - **`@milkdown/ctx`** - Context and dependency injection system for plugins
 - **`@milkdown/prose`** - ProseMirror integration layer
@@ -29,6 +30,7 @@ Milkdown is a **plugin-driven WYSIWYG markdown editor** built on ProseMirror and
 - **`@milkdown/transformer`** - Markdown transformation (remark integration)
 
 ### Plugin System
+
 - **`packages/plugins/`** - Contains all official plugins (18+ plugins)
 - **Plugin Structure**: Each plugin typically exports:
   - Plugin spec (configuration)
@@ -39,18 +41,20 @@ Milkdown is a **plugin-driven WYSIWYG markdown editor** built on ProseMirror and
 - **Key Plugins**: block, clipboard, history, slash, tooltip, emoji, prism, etc.
 
 ### Plugin Development Pattern
+
 ```typescript
 // Typical plugin export structure
 export const myPlugin = [
-  pluginSpec,        // $Ctx<PluginSpec>
-  pluginConfig,      // $Ctx<Config>
-  pluginService,     // $Ctx<() => Service>
-  pluginInstance,    // $Ctx<Service>
-  pluginProse,       // $Prose
+  pluginSpec, // $Ctx<PluginSpec>
+  pluginConfig, // $Ctx<Config>
+  pluginService, // $Ctx<() => Service>
+  pluginInstance, // $Ctx<Service>
+  pluginProse, // $Prose
 ] as MyPlugin
 ```
 
 ### Integration Layers
+
 - **`packages/integrations/react`** - React integration
 - **`packages/integrations/vue`** - Vue integration
 - **`packages/components`** - Reusable UI components
@@ -92,14 +96,16 @@ export const myPlugin = [
 ## Grid Tables Plugin Development
 
 ### Active Development Task
+
 The **Grid Tables Plugin** is currently under development to implement all features of [adobe/remark-gridtables](https://github.com/adobe/remark-gridtables) as a Milkdown plugin.
 
 ### Development Instructions
+
 When asked to "continue with the grid tables plugin" or similar:
 
 1. **Check Progress**: Read `packages/plugins/plugin-gridtables/GRIDTABLES_PLUGIN_TRACKER.md` for current status
 2. **Run as Orchestrator**: Create sub-agents for specific tasks using the Task tool
-3. **Follow Standards**: 
+3. **Follow Standards**:
    - Adhere strictly to `packages/plugins/PLUGIN_DEVELOPMENT_GUIDE.md`
    - Match quality of existing plugins in `packages/plugins/`
    - No hacky fixes - proper solutions only
@@ -113,6 +119,7 @@ When asked to "continue with the grid tables plugin" or similar:
    - Wait for user guidance before proceeding
 
 ### Quality Requirements
+
 - **Architecture**: Array-based plugin pattern with composables
 - **Debugging**: Use withMeta() for all exports
 - **Testing**: Comprehensive unit tests matching existing plugins
@@ -120,7 +127,9 @@ When asked to "continue with the grid tables plugin" or similar:
 - **Code Style**: Follow existing patterns exactly
 
 ### Current Phase Tracking
+
 See `packages/plugins/plugin-gridtables/GRIDTABLES_PLUGIN_TRACKER.md` for:
+
 - Current development phase
 - Completed tasks
 - Pending work
@@ -128,7 +137,9 @@ See `packages/plugins/plugin-gridtables/GRIDTABLES_PLUGIN_TRACKER.md` for:
 - Compliance notes for each task
 
 ### Sub-Agent Task Pattern
+
 When creating sub-agents for grid tables development:
+
 ```
 Task: [Specific phase/task from tracker]
 Requirements:

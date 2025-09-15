@@ -8,31 +8,27 @@
  * - Vertical alignment (top, middle, bottom)
  * - Complex table structures
  *
- * ## Usage Patterns
+ * ## Usage
  *
- * ### Recommended: Post-commonmark Loading
  * ```typescript
  * import { commonmark } from '@milkdown/preset-commonmark'
  * import { gridTables } from '@milkdown/plugin-gridtables'
  *
+ * // Recommended: Post-commonmark loading
  * editor.use(commonmark).use(gridTables)
+ *
+ * // Legacy: Pre-commonmark loading (also supported)
+ * editor.use(gridTables).use(commonmark)
  * ```
  *
- * ### Legacy: Pre-commonmark Loading
- * ```typescript
- * import { gridTablesLegacy } from '@milkdown/plugin-gridtables'
- *
- * editor.use(gridTablesLegacy).use(commonmark)
- * ```
- *
- * The main `gridTables` export uses composition-aware remark plugin that properly
- * handles micromark extension composition when loaded after commonmark/gfm.
+ * The `gridTables` export handles micromark extension composition correctly
+ * for both loading patterns.
  */
 
 import type { SliceType } from '@milkdown/ctx'
 import type { $Ctx, $Prose } from '@milkdown/utils'
 
-import { remarkGridTablesComposed, remarkGridTablesLegacy } from './remark-wrapper'
+import { remarkGridTables } from './remark-wrapper'
 
 import {
   gridTableAttr,
@@ -57,10 +53,7 @@ import {
 } from './prosemirror-plugin'
 
 /// Export schema types for external use
-export type {
-  GridTableAlign,
-  GridTableVAlign,
-} from './schema'
+export type { GridTableAlign, GridTableVAlign } from './schema'
 
 /// Export all schema components
 export {
@@ -101,26 +94,24 @@ export {
 /// Export keymap and input rules
 export { gridTableKeymap } from './keymap'
 export { gridTableInputRules } from './input-rules'
-export { gridTableProseMirrorPlugins, gridTablePluginConfig } from './prosemirror-plugin'
-
-/// Export remark wrapper components for advanced usage
 export {
-  remarkGridTablesComposed,
-  remarkGridTablesLegacy,
-} from './remark-wrapper'
+  gridTableProseMirrorPlugins,
+  gridTablePluginConfig,
+} from './prosemirror-plugin'
 
+/// Export remark wrapper for advanced usage
+export { remarkGridTables } from './remark-wrapper'
 
 /// This plugin wraps [@adobe/remark-gridtables](https://github.com/adobe/remark-gridtables).
-/// Uses composition-aware wrapper by default for post-commonmark loading (.use(commonmark).use(gridTables)).
-/// This is the recommended plugin for modern usage.
-export const remarkGridTablesPlugin = remarkGridTablesComposed
+/// Handles micromark extension composition for both loading patterns.
+export const remarkGridTablesPlugin = remarkGridTables
 
 /// All plugins exported by this package.
-/// Uses composition-aware remark plugin for post-commonmark loading (.use(commonmark).use(gridTables)).
-/// This is the recommended export for modern usage.
+/// Supports both post-commonmark (.use(commonmark).use(gridTables)) and
+/// pre-commonmark (.use(gridTables).use(commonmark)) loading patterns.
 export const gridTables = [
-  // Remark plugin for markdown parsing (composition-aware)
-  remarkGridTablesComposed,
+  // Remark plugin for markdown parsing
+  remarkGridTables,
 
   // HTML attributes
   gridTableAttr,
@@ -148,43 +139,8 @@ export const gridTables = [
   gridTableProseMirrorPlugins,
 ].flat() as GridTablesPlugin
 
-/// Legacy plugin bundle for backward compatibility.
-/// Uses direct remark wrapper for pre-commonmark loading patterns.
-export const gridTablesLegacy = [
-  // Remark plugin for markdown parsing (direct wrapper)
-  remarkGridTablesLegacy,
-
-  // HTML attributes
-  gridTableAttr,
-  gridTableHeadAttr,
-  gridTableBodyAttr,
-  gridTableFootAttr,
-  gridTableRowAttr,
-  gridTableCellAttr,
-
-  // Node schemas
-  gridTableSchema,
-  gridTableHeadSchema,
-  gridTableBodySchema,
-  gridTableFootSchema,
-  gridTableRowSchema,
-  gridTableCellSchema,
-
-  // Commands for table manipulation
-  gridTableCommands,
-
-  // Keyboard navigation
-  gridTableKeymap,
-
-  // ProseMirror plugins for enhanced functionality
-  gridTableProseMirrorPlugins,
-].flat() as GridTablesPlugin
 gridTables.key = gridTablePluginConfig.key
 gridTables.pluginKey = gridTableProseMirrorPlugin.key
-
-// Set keys for legacy export as well
-gridTablesLegacy.key = gridTablePluginConfig.key
-gridTablesLegacy.pluginKey = gridTableProseMirrorPlugin.key
 
 // Typed tuple pattern with key/pluginKey (align with block/slash plugins)
 // Provides stable keys for consumers that need direct access to config/prose plugin keys.

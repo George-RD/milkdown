@@ -10,7 +10,6 @@ pnpm add @milkdown/plugin-gridtables
 
 ## Usage
 
-- Preferred (via kit re‑export):
 ```ts
 import { Editor } from '@milkdown/kit/core'
 import { commonmark } from '@milkdown/kit/preset/commonmark'
@@ -18,23 +17,20 @@ import { gridTables } from '@milkdown/kit/plugin/gridtables'
 
 Editor.make()
   .use(commonmark)
-  .use(gridTables) // Can now load after commonmark - composition handled automatically
+  .use(gridTables)
   .create()
 ```
 
-- Direct package import:
-```ts
-import { Editor } from '@milkdown/core'
-import { commonmark } from '@milkdown/preset-commonmark'
-import { gridTables } from '@milkdown/plugin-gridtables'
+## Features
 
-Editor.make()
-  .use(commonmark)
-  .use(gridTables) // Flexible loading order - composition handled automatically
-  .create()
-```
+- **Rich Content**: Cells can contain full Markdown (lists, code blocks, inline formatting)
+- **Cell Spanning**: Merge cells horizontally and vertically
+- **Alignment**: Horizontal (`left`, `center`, `right`, `justify`) and vertical (`top`, `middle`, `bottom`) alignment
+- **Table Sections**: Header (`thead`), body (`tbody`), and footer (`tfoot`) sections
+- **Multi-line Cells**: Support for complex content across multiple lines
+- **ASCII Syntax**: Human-readable grid table format in source
 
-## Commands (examples)
+## Commands
 
 ```ts
 import { callCommand } from '@milkdown/kit/utils'
@@ -53,9 +49,14 @@ import {
 editor.action(callCommand(insertGridTableCommand.key))
 
 // Insert a 4x5 with header + footer
-editor.action(callCommand(insertGridTableCommand.key, {
-  rows: 4, cols: 5, hasHeader: true, hasFooter: true,
-}))
+editor.action(
+  callCommand(insertGridTableCommand.key, {
+    rows: 4,
+    cols: 5,
+    hasHeader: true,
+    hasFooter: true,
+  })
+)
 
 // Align current cell
 editor.action(callCommand(setGridCellAlignCommand.key, 'center'))
@@ -103,45 +104,8 @@ Cells may contain full markdown (lists, code blocks, inline formatting). Section
 - `gridTableRow`
 - `gridTableCell` (attributes: `colSpan`, `rowSpan`, `align`, `valign`)
 
-## Advanced Usage
+## Keyboard Shortcuts
 
-### Remark Composition
-
-The plugin now includes composition-aware remark wrappers for advanced usage scenarios:
-
-```ts
-import { $remark } from '@milkdown/utils'
-import {
-  remarkGridTablesFactory,
-  remarkGridTablesComposed,
-  remarkGridTablesLegacy,
-} from '@milkdown/plugin-gridtables'
-
-// Automatic composition handling
-const autoPlugin = $remark('gridTables', (ctx) => remarkGridTablesFactory(ctx))
-
-// Explicit composition-aware wrapper
-const composedPlugin = $remark('gridTables', (ctx) => remarkGridTablesComposed(ctx))
-
-// Legacy direct wrapper (no composition handling)
-const legacyPlugin = $remark('gridTables', () => remarkGridTablesLegacy())
-```
-
-### Loading Order Flexibility
-
-Grid tables now work with flexible loading order:
-
-```ts
-// Both of these work correctly:
-Editor.make().use(gridTables).use(commonmark) // Traditional
-Editor.make().use(commonmark).use(gridTables) // Post-commonmark (NEW)
-```
-
-The plugin automatically detects existing table plugins and ensures grid table syntax takes precedence.
-
-## Tips
-
-- Flexible loading order: works before or after commonmark/gfm
-- Prefer kit imports for examples and consumers
-- Use keybindings: `Tab`/`Shift-Tab` to navigate, `Mod-Enter` to exit
-- For advanced composition control, use the remark wrapper functions directly
+- `Tab` / `Shift-Tab` - Navigate between cells
+- `Mod-Enter` - Exit table
+- Arrow keys - Navigate cells (when cursor is at cell edge)

@@ -1,46 +1,30 @@
 import type { $Remark } from '@milkdown/utils'
 
 import { $remark } from '@milkdown/utils'
-import remarkGridTables from '@adobe/remark-gridtables'
+import remarkGridTablesAdobe from '@adobe/remark-gridtables'
 
 import { withMeta } from './__internal__'
 
 /**
- * Composition-aware remark plugin for grid tables.
+ * Remark plugin for grid tables.
  *
  * This creates a proper Milkdown remark plugin that can be used with $remark.
  * The adobe/remark-gridtables plugin handles micromark extension composition internally,
- * so it works correctly when loaded after commonmark/gfm.
+ * so it works correctly in both loading patterns:
+ * - Post-commonmark: .use(commonmark).use(gridTables) (recommended)
+ * - Pre-commonmark: .use(gridTables).use(commonmark) (legacy compatibility)
  */
-export const remarkGridTablesComposed: $Remark<'remarkGridTablesComposed', never> =
-  $remark('remarkGridTablesComposed', () => remarkGridTables)
+export const remarkGridTables: $Remark<'remarkGridTables', never> = $remark(
+  'remarkGridTables',
+  () => remarkGridTablesAdobe
+)
 
-withMeta(remarkGridTablesComposed.plugin, {
-  displayName: 'Remark<remarkGridTablesComposed>',
+withMeta(remarkGridTables.plugin, {
+  displayName: 'Remark<remarkGridTables>',
   group: 'GridTable',
 })
 
-withMeta(remarkGridTablesComposed.options, {
-  displayName: 'RemarkConfig<remarkGridTablesComposed>',
+withMeta(remarkGridTables.options, {
+  displayName: 'RemarkConfig<remarkGridTables>',
   group: 'GridTable',
 })
-
-/**
- * Legacy remark plugin for backward compatibility.
- *
- * This maintains the existing direct adobe/remark-gridtables usage
- * for cases where pre-commonmark loading is required.
- */
-export const remarkGridTablesLegacy: $Remark<'remarkGridTablesLegacy', never> =
-  $remark('remarkGridTablesLegacy', () => remarkGridTables)
-
-withMeta(remarkGridTablesLegacy.plugin, {
-  displayName: 'Remark<remarkGridTablesLegacy>',
-  group: 'GridTable',
-})
-
-withMeta(remarkGridTablesLegacy.options, {
-  displayName: 'RemarkConfig<remarkGridTablesLegacy>',
-  group: 'GridTable',
-})
-

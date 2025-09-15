@@ -16,11 +16,14 @@ interface GridTablePluginState {
 }
 
 /// Configuration for the grid table plugin
-export const gridTablePluginConfig = $ctx({
-  enableCellHover: true,
-  enableColumnResize: false, // Future feature
-  cellHoverClass: 'grid-table-cell-hover',
-}, 'gridTablePluginConfig')
+export const gridTablePluginConfig = $ctx(
+  {
+    enableCellHover: true,
+    enableColumnResize: false, // Future feature
+    cellHoverClass: 'grid-table-cell-hover',
+  },
+  'gridTablePluginConfig'
+)
 
 withMeta(gridTablePluginConfig, {
   displayName: 'Config<gridTablePluginConfig>',
@@ -30,10 +33,10 @@ withMeta(gridTablePluginConfig, {
 /// The main ProseMirror plugin for grid table enhancements
 export const gridTableProseMirrorPlugin = $prose((ctx) => {
   const config = ctx.get(gridTablePluginConfig.key)
-  
+
   return new Plugin<GridTablePluginState>({
     key: new PluginKey('gridTable'),
-    
+
     state: {
       init() {
         return {
@@ -41,38 +44,42 @@ export const gridTableProseMirrorPlugin = $prose((ctx) => {
           hoveredCell: null,
         }
       },
-      
+
       apply(tr, state) {
         let { decorations, hoveredCell } = state
-        
+
         // Update decorations if document changed
         if (tr.docChanged) {
           decorations = decorations.map(tr.mapping, tr.doc)
         }
-        
+
         // Handle meta transactions for hover state
         const newHoveredCell = tr.getMeta('gridTableHover')
         if (newHoveredCell !== undefined) {
           hoveredCell = newHoveredCell
-          decorations = updateHoverDecorations(tr.doc, hoveredCell, config.cellHoverClass)
+          decorations = updateHoverDecorations(
+            tr.doc,
+            hoveredCell,
+            config.cellHoverClass
+          )
         }
-        
+
         return { decorations, hoveredCell }
       },
     },
-    
+
     props: {
       decorations(state) {
         return this.getState(state)?.decorations
       },
-      
+
       handleDOMEvents: {
         mouseover(view, event) {
           if (!config.enableCellHover) return false
-          
+
           const target = event.target as Element
           const cellElement = target.closest('td, th') as HTMLElement
-          
+
           if (cellElement && isInGridTableDOM(cellElement)) {
             const pos = view.posAtDOM(cellElement, 0)
             if (pos >= 0) {
@@ -80,32 +87,32 @@ export const gridTableProseMirrorPlugin = $prose((ctx) => {
               view.dispatch(tr)
             }
           }
-          
+
           return false
         },
-        
+
         mouseout(view, event) {
           if (!config.enableCellHover) return false
-          
+
           const target = event.target as Element
           const cellElement = target.closest('td, th') as HTMLElement
-          
+
           if (cellElement && isInGridTableDOM(cellElement)) {
             const tr = view.state.tr.setMeta('gridTableHover', null)
             view.dispatch(tr)
           }
-          
+
           return false
         },
       },
     },
-    
+
     view(_editorView) {
       return {
         update(_view, _prevState) {
           // Handle view updates if needed
         },
-        
+
         destroy() {
           // Cleanup if needed
         },
@@ -133,11 +140,11 @@ function updateHoverDecorations(
   if (hoveredCellPos === null) {
     return DecorationSet.empty
   }
-  
+
   try {
     const resolvedPos = doc.resolve(hoveredCellPos)
     const cellNode = resolvedPos.parent
-    
+
     if (cellNode.type.name === 'gridTableCell') {
       const decoration = Decoration.node(
         resolvedPos.before(),
@@ -150,7 +157,7 @@ function updateHoverDecorations(
     // Position might be invalid, return empty decorations
     console.warn('Invalid position for grid table hover decoration:', error)
   }
-  
+
   return DecorationSet.empty
 }
 
