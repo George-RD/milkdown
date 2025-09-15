@@ -73,7 +73,7 @@ export {
 /// Export keymap and input rules
 export { gridTableKeymap } from './keymap'
 export { gridTableInputRules } from './input-rules'
-export { gridTableProseMirrorPlugins } from './prosemirror-plugin'
+export { gridTableProseMirrorPlugins, gridTablePluginConfig } from './prosemirror-plugin'
 
 /// This plugin wraps [@adobe/remark-gridtables](https://github.com/adobe/remark-gridtables).
 export const remarkGridTablesPlugin = $remark(

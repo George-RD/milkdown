@@ -1,7 +1,7 @@
 import { $useKeymap } from '@milkdown/utils'
 import { commandsCtx } from '@milkdown/core'
 
-// import { withMeta } from './__internal__'
+import { withMeta } from './__internal__'
 import {
   goToNextGridCellCommand,
   goToPrevGridCellCommand,
@@ -48,5 +48,14 @@ export const gridTableKeymap = $useKeymap('gridTableKeymap', {
   },
 })
 
-// Note: withMeta is not applied to keymaps as they are composite plugins
-// The keymap will be included in the main plugin array
+withMeta(gridTableKeymap.ctx, {
+  displayName: 'KeymapCtx<GridTable>',
+  group: 'GridTable',
+})
+
+withMeta(gridTableKeymap.shortcuts, {
+  displayName: 'Keymap<GridTable>',
+  group: 'GridTable',
+})
+
+// The keymap is included in the main plugin array

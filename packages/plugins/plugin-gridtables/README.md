@@ -1,62 +1,111 @@
 # @milkdown/plugin-gridtables
 
-A Milkdown plugin that adds support for grid tables using [@adobe/remark-gridtables](https://github.com/adobe/remark-gridtables).
-
-## Features
-
-- Full grid table support with cell spanning
-- Horizontal and vertical alignment
-- Support for complex markdown content within cells
-- Header, body, and footer sections
+Grid tables for Milkdown, powered by [@adobe/remark-gridtables](https://github.com/adobe/remark-gridtables). Supports spanning, alignment, rich content, and table sections.
 
 ## Installation
 
 ```bash
-npm install @milkdown/plugin-gridtables
+pnpm add @milkdown/plugin-gridtables
 ```
 
 ## Usage
 
-```typescript
+- Preferred (via kit re‑export):
+```ts
+import { Editor } from '@milkdown/kit/core'
+import { commonmark } from '@milkdown/kit/preset/commonmark'
+import { gridTables } from '@milkdown/kit/plugin/gridtables'
+
+Editor.make()
+  // Important: gridTables must load BEFORE commonmark to parse grid syntax
+  .use(gridTables)
+  .use(commonmark)
+  .create()
+```
+
+- Direct package import:
+```ts
 import { Editor } from '@milkdown/core'
 import { commonmark } from '@milkdown/preset-commonmark'
 import { gridTables } from '@milkdown/plugin-gridtables'
 
-Editor
-  .make()
+Editor.make()
+  .use(gridTables) // Load before commonmark
   .use(commonmark)
-  .use(gridTables)
   .create()
+```
+
+## Commands (examples)
+
+```ts
+import { callCommand } from '@milkdown/kit/utils'
+import {
+  insertGridTableCommand,
+  setGridCellAlignCommand,
+  setGridCellVAlignCommand,
+  addGridRowAfterCommand,
+  addGridColumnBeforeCommand,
+  mergeGridCellRightCommand,
+  splitGridCellCommand,
+  exitGridTableCommand,
+} from '@milkdown/kit/plugin/gridtables'
+
+// Insert a 3x3 with header
+editor.action(callCommand(insertGridTableCommand.key))
+
+// Insert a 4x5 with header + footer
+editor.action(callCommand(insertGridTableCommand.key, {
+  rows: 4, cols: 5, hasHeader: true, hasFooter: true,
+}))
+
+// Align current cell
+editor.action(callCommand(setGridCellAlignCommand.key, 'center'))
+editor.action(callCommand(setGridCellVAlignCommand.key, 'top'))
+
+// Structure
+editor.action(callCommand(addGridRowAfterCommand.key))
+editor.action(callCommand(addGridColumnBeforeCommand.key))
+editor.action(callCommand(mergeGridCellRightCommand.key))
+editor.action(callCommand(splitGridCellCommand.key))
+
+// Exit the table
+editor.action(callCommand(exitGridTableCommand.key))
 ```
 
 ## Grid Table Syntax
 
-Grid tables use ASCII art to define table structure:
+ASCII grid table examples (subset):
 
 ```
+// Basic
 +-------+-------+-------+
-| Cell  | Cell  | Cell  |
-| 1     | 2     | 3     |
+| A     | B     | C     |
 +=======+=======+=======+
-| Cell  | Cell  | Cell  |
-| 4     | 5     | 6     |
+| 1     | 2     | 3     |
 +-------+-------+-------+
+
+// Spanning
+| span across +--+ columns |
+
+// Horizontal alignment
+| :--- | :--: | ---: | >--< |
+| left |center|right |justify|
+
+// Vertical alignment (within cells)
+^ top | x middle | v bottom
 ```
 
-### Features
-
-- **Cell Spanning**: Use `+` markers to span cells across rows/columns
-- **Alignment**: Use `:` for horizontal alignment, `^` `v` for vertical
-- **Complex Content**: Cells can contain full markdown including lists, code, etc.
-- **Sections**: Separate header (with `=`), body, and footer sections
+Cells may contain full markdown (lists, code blocks, inline formatting). Sections use `thead`/`tbody`/`tfoot` (header rows denoted by `=` divider).
 
 ## Schema
 
-The plugin provides these node types:
+- `gridTable` (root)
+- `gridTableHead`, `gridTableBody`, `gridTableFoot`
+- `gridTableRow`
+- `gridTableCell` (attributes: `colSpan`, `rowSpan`, `align`, `valign`)
 
-- `gridTable` - The root table node
-- `gridTableHead` - Table header section
-- `gridTableBody` - Table body section  
-- `gridTableFoot` - Table footer section
-- `gridTableRow` - Table row
-- `gridTableCell` - Table cell with span and alignment attributes
+## Tips
+
+- Load order matters: `.use(gridTables).use(commonmark)`
+- Prefer kit imports for examples and consumers
+- Use keybindings: `Tab`/`Shift-Tab` to navigate, `Mod-Enter` to exit

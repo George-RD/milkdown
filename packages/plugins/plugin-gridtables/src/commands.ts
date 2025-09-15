@@ -436,7 +436,12 @@ export const addGridColumnAfterCommand = $command(
     const tr = state.tr
     let offset = 0
 
-    const addColumnToSection = (sectionType: any) => {
+    type SectionSchema =
+      | typeof gridTableHeadSchema
+      | typeof gridTableBodySchema
+      | typeof gridTableFootSchema
+
+    const addColumnToSection = (sectionType: SectionSchema) => {
       const sectionNode = findParentNodeType(state.selection.$head, sectionType.type(ctx))
       if (!sectionNode) return
 
@@ -498,7 +503,12 @@ export const addGridColumnBeforeCommand = $command(
     const tr = state.tr
     let offset = 0
 
-    const addColumnToSection = (sectionType: any) => {
+    type SectionSchema =
+      | typeof gridTableHeadSchema
+      | typeof gridTableBodySchema
+      | typeof gridTableFootSchema
+
+    const addColumnToSection = (sectionType: SectionSchema) => {
       const sectionNode = findParentNodeType(state.selection.$head, sectionType.type(ctx))
       if (!sectionNode) return
 

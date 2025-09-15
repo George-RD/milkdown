@@ -7,7 +7,12 @@
     "tsBuildInfoFile": "./lib/tsconfig.tsbuildinfo"
   },
   "include": ["src"],
-  "exclude": ["src/**/*.test.ts", "src/__tests__/**"],
+  "exclude": [
+    "src/**/*.spec.ts",
+    "src/**/*.test.ts",
+    "src/__test__/**",
+    "src/__tests__/**"
+  ],
   "references": [
     { "path": "../../exception" },
     { "path": "../../core" },
