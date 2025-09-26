@@ -89,7 +89,7 @@ const complexGridTable = `
 export const Basic: Story = {
   render: (args) => {
     return setupMilkdown([], args, (editor) => {
-      editor.use(gfm).use(gridTables).use(clipboard)
+      editor.use(clipboard).use(gridTables)
     })
   },
   args: {

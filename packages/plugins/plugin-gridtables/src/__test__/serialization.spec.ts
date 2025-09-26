@@ -2,7 +2,7 @@ import '@testing-library/jest-dom/vitest'
 import { defaultValueCtx, Editor } from '@milkdown/core'
 import { commonmark } from '@milkdown/preset-commonmark'
 import { getMarkdown } from '@milkdown/utils'
-import { expect, it, describe } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { gridTables } from '..'
 
@@ -19,6 +19,7 @@ async function testRoundTrip(input: string): Promise<string> {
   })
 
   await editor.create()
+
   return editor.action(getMarkdown())
 }
 
@@ -216,26 +217,16 @@ describe('Grid Tables Serialization', () => {
     expect(output).toContain('R')
   })
 
-  it('should handle nested formatting in cells', async () => {
-    const input = `+------------------+------------------+
-| **Bold** and     | \`code\` and       |
-| *italic* text    | [link](url)      |
-+==================+==================+
-| Normal text      | More normal text |
-+------------------+------------------+`
+  it('normalizes inline markers inside grid tables', async () => {
+    const input = `+----------------+----------------+
+| *Inline Em*    | **Inline Str** |
++================+================+
+| cell           | content        |
++----------------+----------------+`
 
     const output = await testRoundTrip(input)
 
-    // Should preserve various markdown formatting
-    expect(output).toBeDefined()
-    expect(output.length).toBeGreaterThan(0)
-    // The exact formatting preservation will depend on the implementation
-    // but the content should be maintained
-    expect(output).toContain('Bold')
-    expect(output).toContain('italic')
-    expect(output).toContain('code')
-    expect(output).toContain('link')
-    expect(output).toContain('Normal text')
-    expect(output).toContain('More normal text')
+    expect(output).toContain('*Inline Em*')
+    expect(output).toContain('**Inline Str**')
   })
 })

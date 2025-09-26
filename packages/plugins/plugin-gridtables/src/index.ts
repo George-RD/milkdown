@@ -29,6 +29,7 @@ import type { SliceType } from '@milkdown/ctx'
 import type { $Ctx, $Prose } from '@milkdown/utils'
 
 import { remarkGridTables } from './remark-wrapper'
+import { remarkGridTablesNormalizeInline } from './remark-normalize-inline'
 
 import {
   gridTableAttr,
@@ -101,6 +102,7 @@ export {
 
 /// Export remark wrapper for advanced usage
 export { remarkGridTables } from './remark-wrapper'
+export { remarkGridTablesNormalizeInline } from './remark-normalize-inline'
 
 /// This plugin wraps [@adobe/remark-gridtables](https://github.com/adobe/remark-gridtables).
 /// Handles micromark extension composition for both loading patterns.
@@ -112,6 +114,7 @@ export const remarkGridTablesPlugin = remarkGridTables
 export const gridTables = [
   // Remark plugin for markdown parsing
   remarkGridTables,
+  remarkGridTablesNormalizeInline,
 
   // HTML attributes
   gridTableAttr,
