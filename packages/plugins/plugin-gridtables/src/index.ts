@@ -14,15 +14,8 @@
  * import { commonmark } from '@milkdown/preset-commonmark'
  * import { gridTables } from '@milkdown/plugin-gridtables'
  *
- * // Recommended: Post-commonmark loading
  * editor.use(commonmark).use(gridTables)
- *
- * // Legacy: Pre-commonmark loading (also supported)
- * editor.use(gridTables).use(commonmark)
  * ```
- *
- * The `gridTables` export handles micromark extension composition correctly
- * for both loading patterns.
  */
 
 import type { SliceType } from '@milkdown/ctx'
@@ -104,13 +97,11 @@ export {
 export { remarkGridTables } from './remark-wrapper'
 export { remarkGridTablesNormalizeInline } from './remark-normalize-inline'
 
-/// This plugin wraps [@adobe/remark-gridtables](https://github.com/adobe/remark-gridtables).
-/// Handles micromark extension composition for both loading patterns.
+/// This plugin wraps [@adobe/remark-gridtables](https://github.com/adobe/remark-gridtables)
+/// and composes cleanly with Milkdown's remark pipeline.
 export const remarkGridTablesPlugin = remarkGridTables
 
 /// All plugins exported by this package.
-/// Supports both post-commonmark (.use(commonmark).use(gridTables)) and
-/// pre-commonmark (.use(gridTables).use(commonmark)) loading patterns.
 export const gridTables = [
   // Remark plugin for markdown parsing
   remarkGridTables,

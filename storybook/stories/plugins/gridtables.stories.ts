@@ -107,7 +107,7 @@ export const Basic: Story = {
 export const Complex: Story = {
   render: (args) => {
     return setupMilkdown([], args, (editor) => {
-      editor.use(gridTables)
+      editor.use(gridTables).use(clipboard)
     })
   },
   args: {
@@ -193,7 +193,7 @@ export const Interactive: Story = {
       .config(nord)
       .use(listener)
       .use(commonmark)
-      .use(gridTables) // Load gridTables after commonmark
+      .use(gridTables)
       .use(history)
 
     // Wire up buttons after editor creation

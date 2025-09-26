@@ -51,7 +51,7 @@ Recommended end-to-end flow for building a new plugin:
 3. Develop with feedback
 
 - Run Storybook: `pnpm start` and add stories under `storybook/` if the plugin has UI.
-- Add unit tests next to sources; run `pnpm test:unit`.
+- Add unit tests next to sources; for larger suites you can also keep a dedicated `src/__test__/` folder that houses shared helpers alongside spec files. Run `pnpm test:unit` either way.
 - Add E2E tests if behavior spans multiple interactions.
 
 4. Polish and stabilize

@@ -13,9 +13,8 @@ import { commonmark } from '@milkdown/kit/preset/commonmark'
 import { gridTables } from '@milkdown/kit/plugin/gridtables'
 
 Editor.make()
-  // Important: parse grid syntax first
-  .use(gridTables)
   .use(commonmark)
+  .use(gridTables)
   .create()
 ```
 
