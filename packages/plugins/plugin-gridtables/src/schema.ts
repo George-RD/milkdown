@@ -71,41 +71,61 @@ withMeta(gridTableHeadAttr, {
   group: 'GridTable',
 })
 
+type GridTableSectionConfig = {
+  name: 'gridTableHead' | 'gridTableBody' | 'gridTableFoot'
+  htmlTag: 'thead' | 'tbody' | 'tfoot'
+  markdownType: 'gtHeader' | 'gtBody' | 'gtFooter'
+}
+
+const createGridTableSectionSchema = ({
+  name,
+  htmlTag,
+  markdownType,
+}: GridTableSectionConfig) => {
+  const schema = $nodeSchema(name, (_ctx) => ({
+    content: 'gridTableRow+',
+    parseDOM: [{ tag: htmlTag }],
+    toDOM: () => [
+      htmlTag,
+      // Section-level attributes handled by node,
+      0,
+    ],
+    parseMarkdown: {
+      match: (node) => node.type === markdownType,
+      runner: (state, node, type) => {
+        state.openNode(type)
+        state.next(node.children)
+        state.closeNode()
+      },
+    },
+    toMarkdown: {
+      match: (node) => node.type.name === name,
+      runner: (state, node) => {
+        state.openNode(markdownType)
+        state.next(node.content)
+        state.closeNode()
+      },
+    },
+  }))
+
+  withMeta(schema.node, {
+    displayName: `NodeSchema<${name}>`,
+    group: 'GridTable',
+  })
+
+  withMeta(schema.ctx, {
+    displayName: `NodeSchemaCtx<${name}>`,
+    group: 'GridTable',
+  })
+
+  return schema
+}
+
 /// Schema for grid table head node.
-export const gridTableHeadSchema = $nodeSchema('gridTableHead', (_ctx) => ({
-  content: 'gridTableRow+',
-  parseDOM: [{ tag: 'thead' }],
-  toDOM: () => [
-    'thead',
-    // Head-level attributes handled by node,
-    0,
-  ],
-  parseMarkdown: {
-    match: (node) => node.type === 'gtHeader',
-    runner: (state, node, type) => {
-      state.openNode(type)
-      state.next(node.children)
-      state.closeNode()
-    },
-  },
-  toMarkdown: {
-    match: (node) => node.type.name === 'gridTableHead',
-    runner: (state, node) => {
-      state.openNode('gtHeader')
-      state.next(node.content)
-      state.closeNode()
-    },
-  },
-}))
-
-withMeta(gridTableHeadSchema.node, {
-  displayName: 'NodeSchema<gridTableHead>',
-  group: 'GridTable',
-})
-
-withMeta(gridTableHeadSchema.ctx, {
-  displayName: 'NodeSchemaCtx<gridTableHead>',
-  group: 'GridTable',
+export const gridTableHeadSchema = createGridTableSectionSchema({
+  name: 'gridTableHead',
+  htmlTag: 'thead',
+  markdownType: 'gtHeader',
 })
 
 /// HTML attributes for grid table body node.
@@ -117,40 +137,10 @@ withMeta(gridTableBodyAttr, {
 })
 
 /// Schema for grid table body node.
-export const gridTableBodySchema = $nodeSchema('gridTableBody', (_ctx) => ({
-  content: 'gridTableRow+',
-  parseDOM: [{ tag: 'tbody' }],
-  toDOM: () => [
-    'tbody',
-    // Body-level attributes handled by node,
-    0,
-  ],
-  parseMarkdown: {
-    match: (node) => node.type === 'gtBody',
-    runner: (state, node, type) => {
-      state.openNode(type)
-      state.next(node.children)
-      state.closeNode()
-    },
-  },
-  toMarkdown: {
-    match: (node) => node.type.name === 'gridTableBody',
-    runner: (state, node) => {
-      state.openNode('gtBody')
-      state.next(node.content)
-      state.closeNode()
-    },
-  },
-}))
-
-withMeta(gridTableBodySchema.node, {
-  displayName: 'NodeSchema<gridTableBody>',
-  group: 'GridTable',
-})
-
-withMeta(gridTableBodySchema.ctx, {
-  displayName: 'NodeSchemaCtx<gridTableBody>',
-  group: 'GridTable',
+export const gridTableBodySchema = createGridTableSectionSchema({
+  name: 'gridTableBody',
+  htmlTag: 'tbody',
+  markdownType: 'gtBody',
 })
 
 /// HTML attributes for grid table foot node.
@@ -162,40 +152,10 @@ withMeta(gridTableFootAttr, {
 })
 
 /// Schema for grid table foot node.
-export const gridTableFootSchema = $nodeSchema('gridTableFoot', (_ctx) => ({
-  content: 'gridTableRow+',
-  parseDOM: [{ tag: 'tfoot' }],
-  toDOM: () => [
-    'tfoot',
-    // Foot-level attributes handled by node,
-    0,
-  ],
-  parseMarkdown: {
-    match: (node) => node.type === 'gtFooter',
-    runner: (state, node, type) => {
-      state.openNode(type)
-      state.next(node.children)
-      state.closeNode()
-    },
-  },
-  toMarkdown: {
-    match: (node) => node.type.name === 'gridTableFoot',
-    runner: (state, node) => {
-      state.openNode('gtFooter')
-      state.next(node.content)
-      state.closeNode()
-    },
-  },
-}))
-
-withMeta(gridTableFootSchema.node, {
-  displayName: 'NodeSchema<gridTableFoot>',
-  group: 'GridTable',
-})
-
-withMeta(gridTableFootSchema.ctx, {
-  displayName: 'NodeSchemaCtx<gridTableFoot>',
-  group: 'GridTable',
+export const gridTableFootSchema = createGridTableSectionSchema({
+  name: 'gridTableFoot',
+  htmlTag: 'tfoot',
+  markdownType: 'gtFooter',
 })
 
 /// HTML attributes for grid table row node.
