@@ -27,7 +27,10 @@ import { clipboard } from '@milkdown/kit/plugin/clipboard'
 
 import type { CommonArgs } from '../utils/shadow'
 
-import { setupMilkdown, wrapInShadowWithNord } from '../utils/shadow'
+import { setupMilkdown, wrapInShadow } from '../utils/shadow'
+import pmStyle from '@milkdown/kit/prose/view/style/prosemirror.css?inline'
+import nordStyle from '@milkdown/theme-nord/style.css?inline'
+import commonStyle from '../utils/style.css?inline'
 
 const meta: Meta<CommonArgs> = {
   title: 'Plugins/Grid Tables',
@@ -146,7 +149,11 @@ export const Empty: Story = {
 export const Interactive: Story = {
   render: (args) => {
     // Create custom setup for interactive toolbar
-    const { wrapper, root, shadow } = wrapInShadowWithNord([])
+    const { wrapper, root, shadow } = wrapInShadow([
+      nordStyle,
+      pmStyle,
+      commonStyle,
+    ])
     wrapper.classList.add('milkdown-storybook')
 
     // Create toolbar container
