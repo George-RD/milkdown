@@ -93,62 +93,55 @@ export const myPlugin = [
 - Dependencies should use `workspace:*` for internal packages
 - Build configuration should use shared vite config from `@milkdown/dev/vite`
 
-## Grid Tables Plugin Development
+## Grid Tables Plugin Maintenance
 
-### Active Development Task
+The **Grid Tables Plugin** is feature-complete, implementing [adobe/remark-gridtables](https://github.com/adobe/remark-gridtables) for Milkdown. Focus is now on maintenance, bug fixes, and documentation updates.
 
-The **Grid Tables Plugin** is currently under development to implement all features of [adobe/remark-gridtables](https://github.com/adobe/remark-gridtables) as a Milkdown plugin.
+### Plugin Status
 
-### Development Instructions
+- **Location**: `packages/plugins/plugin-gridtables/`
+- **Status**: Feature-complete, in maintenance mode
+- **Tracker**: `packages/plugins/plugin-gridtables/GRIDTABLES_PLUGIN_TRACKER.md` (current work log)
+- **Development Guide**: `packages/plugins/PLUGIN_DEVELOPMENT_GUIDE.md` (standards)
 
-When asked to "continue with the grid tables plugin" or similar:
+### API Documentation Maintenance
 
-1. **Check Progress**: Read `packages/plugins/plugin-gridtables/GRIDTABLES_PLUGIN_TRACKER.md` for current status
-2. **Run as Orchestrator**: Create sub-agents for specific tasks using the Task tool
-3. **Follow Standards**:
-   - Adhere strictly to `packages/plugins/PLUGIN_DEVELOPMENT_GUIDE.md`
-   - Match quality of existing plugins in `packages/plugins/`
-   - No hacky fixes - proper solutions only
-4. **Update Documentation**: After each task completion:
-   - Update `packages/plugins/plugin-gridtables/GRIDTABLES_PLUGIN_TRACKER.md` with progress
-   - Note how each task followed the development guide
-   - Document any architectural decisions
-5. **Guide Updates**: If the development guide needs updates:
-   - STOP work immediately
-   - Explain what needs updating and why
-   - Wait for user guidance before proceeding
+The plugin uses Milkdown's automated API documentation system:
 
-### Quality Requirements
+**Source Code Comments**:
+- Use `///` triple-slash JSDoc comments above all exports
+- Format: `/// Description of what this export does`
+- Located in: `packages/plugins/plugin-gridtables/src/*.ts`
 
-- **Architecture**: Array-based plugin pattern with composables
-- **Debugging**: Use withMeta() for all exports
-- **Testing**: Comprehensive unit tests matching existing plugins
-- **Documentation**: Complete API docs and examples
-- **Code Style**: Follow existing patterns exactly
+**API Template**:
+- File: `docs/api/plugin-gridtables.md`
+- Contains usage examples, high-level descriptions
+- References exports with `@symbolName` (e.g., `@insertGridTableCommand`)
+- Update this file when changing plugin structure or examples
 
-### Current Phase Tracking
-
-See `packages/plugins/plugin-gridtables/GRIDTABLES_PLUGIN_TRACKER.md` for:
-
-- Current development phase
-- Completed tasks
-- Pending work
-- Issues and blockers
-- Compliance notes for each task
-
-### Sub-Agent Task Pattern
-
-When creating sub-agents for grid tables development:
-
+**Build Documentation**:
+```bash
+pnpm --filter=@milkdown/docs build
 ```
-Task: [Specific phase/task from tracker]
-Requirements:
-1. Follow packages/plugins/PLUGIN_DEVELOPMENT_GUIDE.md patterns
-2. Match existing plugin quality in packages/plugins/
-3. Document all decisions and code
-4. Report back with:
-   - What was implemented
-   - How it follows the guide
-   - Any issues or uncertainties
-   - Code snippets for review
-```
+- Parses TypeScript exports and JSDoc comments
+- Expands `@symbolName` references in template
+- Outputs to `docs/lib/plugin-gridtables.md` (published docs)
+
+### Maintenance Workflow
+
+When fixing bugs or adding features:
+
+1. **Follow Standards**: Adhere to `packages/plugins/PLUGIN_DEVELOPMENT_GUIDE.md`
+2. **Update JSDoc**: Add/update `///` comments for new/changed exports
+3. **Update API Template**: Modify `docs/api/plugin-gridtables.md` if structure changes
+4. **Rebuild Docs**: Run `pnpm --filter=@milkdown/docs build`
+5. **Update Tracker**: Log changes in `GRIDTABLES_PLUGIN_TRACKER.md`
+6. **Test**: Run `pnpm --filter=@milkdown/plugin-gridtables test`
+
+### Quality Standards
+
+- Array-based plugin pattern with composables
+- withMeta() for all exports (debugging)
+- Comprehensive unit tests
+- Complete JSDoc documentation
+- Follow existing plugin patterns

@@ -1,3 +1,5 @@
+import type { Root } from 'mdast'
+
 import { $remark } from '@milkdown/utils'
 
 import { withMeta } from './__internal__'
@@ -33,8 +35,8 @@ const normalizeMarkers = (node: MdastNode, insideGtCell: boolean): void => {
   }
 }
 
-export const normalizeGridTableInlineMarkers = (tree: MdastNode): void => {
-  normalizeMarkers(tree, false)
+export const normalizeGridTableInlineMarkers = (tree: Root): void => {
+  normalizeMarkers(tree as unknown as MdastNode, false)
 }
 
 export const remarkGridTablesNormalizeInline = $remark(
