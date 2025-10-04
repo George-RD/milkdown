@@ -22,11 +22,13 @@
       "Bash(mkdir:*)",
       "Bash(pnpm dev:*)",
       "Bash(pnpm --filter=@milkdown/plugin-gridtables test)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Read(//Users/george/repos/**)"
     ],
     "deny": [],
     "ask": []
   },
   "enableAllProjectMcpServers": false,
-  "outputStyle": "main"
+  "outputStyle": "main",
+  "includeCoAuthoredBy": false
 }
