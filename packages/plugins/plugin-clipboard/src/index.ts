@@ -7,7 +7,7 @@ import {
   serializerCtx,
 } from '@milkdown/core'
 import { getNodeFromSchema, isTextOnlySlice } from '@milkdown/prose'
-import { DOMParser, DOMSerializer } from '@milkdown/prose/model'
+import { DOMParser, DOMSerializer, Slice } from '@milkdown/prose/model'
 import { Plugin, PluginKey, TextSelection } from '@milkdown/prose/state'
 import { $prose } from '@milkdown/utils'
 
@@ -80,7 +80,18 @@ export const clipboard = $prose((ctx) => {
           template.remove()
         }
 
-        const slice = domParser.parseSlice(dom)
+        let slice = domParser.parseSlice(dom)
+
+        if (slice.openStart > 0 || slice.openEnd > 0) {
+          const { firstChild, lastChild } = slice.content
+
+          if (firstChild?.type.spec.isolating || lastChild?.type.spec.isolating) {
+            const normalized = Slice.maxOpen(slice.content, false)
+            if (normalized.openStart < slice.openStart || normalized.openEnd < slice.openEnd) {
+              slice = normalized
+            }
+          }
+        }
         const node = isTextOnlySlice(slice)
         if (node) {
           view.dispatch(view.state.tr.replaceSelectionWith(node, true))
