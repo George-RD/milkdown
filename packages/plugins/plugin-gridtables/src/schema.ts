@@ -84,7 +84,16 @@ const createGridTableSectionSchema = ({
 }: GridTableSectionConfig) => {
   const schema = $nodeSchema(name, (_ctx) => ({
     content: 'gridTableRow+',
-    parseDOM: [{ tag: htmlTag }],
+    parseDOM: [
+      {
+        tag: htmlTag,
+        getAttrs: (dom) =>
+          dom instanceof HTMLElement &&
+          dom.closest('table[data-type="grid-table"]')
+            ? null
+            : false,
+      },
+    ],
     toDOM: () => [
       htmlTag,
       // Section-level attributes handled by node,
@@ -169,7 +178,16 @@ withMeta(gridTableRowAttr, {
 /// Schema for grid table row node.
 export const gridTableRowSchema = $nodeSchema('gridTableRow', (_ctx) => ({
   content: 'gridTableCell+',
-  parseDOM: [{ tag: 'tr' }],
+  parseDOM: [
+    {
+      tag: 'tr',
+      getAttrs: (dom) =>
+        dom instanceof HTMLElement &&
+        dom.closest('table[data-type="grid-table"]')
+          ? null
+          : false,
+    },
+  ],
   toDOM: () => [
     'tr',
     // Row-level attributes handled by node,
@@ -225,12 +243,20 @@ export const gridTableCellSchema = $nodeSchema('gridTableCell', (ctx) => ({
       tag: 'td',
       getAttrs: (dom) => {
         if (!(dom instanceof HTMLElement)) return false
+        if (!dom.closest('table[data-type="grid-table"]')) return false
+
+        const alignAttr = dom.getAttribute('data-align') || dom.getAttribute('align')
+        const valignAttr =
+          dom.getAttribute('data-valign') || dom.getAttribute('valign')
+
+        const styleAlign = dom.style.textAlign || null
+        const styleVAlign = dom.style.verticalAlign || null
 
         return {
           colSpan: parseInt(dom.getAttribute('colspan') || '1', 10),
           rowSpan: parseInt(dom.getAttribute('rowspan') || '1', 10),
-          align: dom.getAttribute('data-align') || null,
-          valign: dom.getAttribute('data-valign') || null,
+          align: alignAttr || styleAlign || null,
+          valign: valignAttr || styleVAlign || null,
         }
       },
     },
@@ -238,12 +264,20 @@ export const gridTableCellSchema = $nodeSchema('gridTableCell', (ctx) => ({
       tag: 'th',
       getAttrs: (dom) => {
         if (!(dom instanceof HTMLElement)) return false
+        if (!dom.closest('table[data-type="grid-table"]')) return false
+
+        const alignAttr = dom.getAttribute('data-align') || dom.getAttribute('align')
+        const valignAttr =
+          dom.getAttribute('data-valign') || dom.getAttribute('valign')
+
+        const styleAlign = dom.style.textAlign || null
+        const styleVAlign = dom.style.verticalAlign || null
 
         return {
           colSpan: parseInt(dom.getAttribute('colspan') || '1', 10),
           rowSpan: parseInt(dom.getAttribute('rowspan') || '1', 10),
-          align: dom.getAttribute('data-align') || null,
-          valign: dom.getAttribute('data-valign') || null,
+          align: alignAttr || styleAlign || null,
+          valign: valignAttr || styleVAlign || null,
         }
       },
     },
