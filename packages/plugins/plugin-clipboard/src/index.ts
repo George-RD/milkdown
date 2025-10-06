@@ -1,4 +1,4 @@
-import type { Node as ProsemirrorNode } from '@milkdown/prose/model'
+import type { Node as ProsemirrorNode, Schema } from '@milkdown/prose/model'
 
 import {
   editorViewOptionsCtx,
@@ -14,10 +14,57 @@ import { $prose } from '@milkdown/utils'
 import { isPureText } from './__internal__/is-pure-text'
 import { withMeta } from './__internal__/with-meta'
 
+const isDomSearchable = (node: Node): node is DocumentFragment | Element =>
+  node instanceof DocumentFragment || node instanceof Element
+
+const normalizeClipboardTables = (root: Node, schema: Schema): void => {
+  if (!isDomSearchable(root)) return
+
+  const gridTableType = schema.nodes['gridTable']
+  const gfmTableType = schema.nodes['table']
+  const shouldUpgradeToGrid = Boolean(gridTableType && !gfmTableType)
+  const shouldAnnotateGfm = Boolean(gfmTableType)
+
+  if (!shouldUpgradeToGrid && !shouldAnnotateGfm) return
+
+  root.querySelectorAll('table').forEach((table) => {
+    const isGridTable = table.getAttribute('data-type') === 'grid-table'
+
+    if (shouldUpgradeToGrid) {
+      table.setAttribute('data-type', 'grid-table')
+
+      table.querySelectorAll('th, td').forEach((cell) => {
+        if (!(cell instanceof HTMLElement)) return
+        if (!cell.hasAttribute('data-align')) {
+          const align = cell.getAttribute('align') || cell.style.textAlign
+          if (align) cell.setAttribute('data-align', align)
+        }
+        if (!cell.hasAttribute('data-valign')) {
+          const valign = cell.getAttribute('valign') || cell.style.verticalAlign
+          if (valign) cell.setAttribute('data-valign', valign)
+        }
+      })
+    }
+
+    if (shouldAnnotateGfm && !isGridTable) {
+      const headerRows = table.querySelectorAll('thead tr')
+      if (headerRows.length > 0) {
+        headerRows.forEach((row) => {
+          row.setAttribute('data-is-header', 'true')
+        })
+      } else {
+        const firstRow = table.querySelector('tr')
+        const hasHeaderCell = firstRow?.querySelector('th')
+        if (firstRow && hasHeaderCell) {
+          firstRow.setAttribute('data-is-header', 'true')
+        }
+      }
+    }
+  })
+}
+
 /// The prosemirror plugin for clipboard.
 export const clipboard = $prose((ctx) => {
-  const schema = ctx.get(schemaCtx)
-
   // Set editable props for https://github.com/Milkdown/milkdown/issues/190
   ctx.update(editorViewOptionsCtx, (prev) => ({
     ...prev,
@@ -29,6 +76,7 @@ export const clipboard = $prose((ctx) => {
     key,
     props: {
       handlePaste: (view, event) => {
+        const schema = ctx.get(schemaCtx)
         const parser = ctx.get(parserCtx)
         const editable = view.props.editable?.(view.state)
         const { clipboardData } = event
@@ -80,6 +128,8 @@ export const clipboard = $prose((ctx) => {
           template.remove()
         }
 
+        normalizeClipboardTables(dom, schema)
+
         let slice = domParser.parseSlice(dom)
 
         if (slice.openStart > 0 || slice.openEnd > 0) {
@@ -106,6 +156,7 @@ export const clipboard = $prose((ctx) => {
         }
       },
       clipboardTextSerializer: (slice) => {
+        const schema = ctx.get(schemaCtx)
         const serializer = ctx.get(serializerCtx)
         const isText = isPureText(slice.content.toJSON())
         if (isText)

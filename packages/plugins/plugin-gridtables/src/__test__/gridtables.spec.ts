@@ -1,6 +1,9 @@
 import '@testing-library/jest-dom/vitest'
+import type { Node as ProsemirrorNode } from '@milkdown/prose/model'
 import { defaultValueCtx, Editor, editorViewCtx } from '@milkdown/core'
 import { commonmark } from '@milkdown/preset-commonmark'
+import { clipboard } from '../../../plugin-clipboard/src'
+import { gfm } from '@milkdown/preset-gfm'
 import { expect, it, describe } from 'vitest'
 
 import { gridTables } from '..'
@@ -302,5 +305,136 @@ describe('Grid Tables Plugin', () => {
       expect(cellTexts).toContain('Cell 1')
       expect(cellTexts).toContain('Data 1')
     }
+  })
+
+  it('should convert pasted gfm html table into grid table when gfm preset is absent', async () => {
+    const editor = Editor.make()
+    editor.use(commonmark).use(clipboard).use(gridTables)
+
+    await editor.create()
+
+    const view = editor.ctx.get(editorViewCtx)
+
+    const html = `
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: left;">Fruit</th>
+      <th style="text-align: center;">Animal</th>
+      <th style="text-align: right;">Vegetable</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Apple</td>
+      <td>Cat</td>
+      <td>Carrot</td>
+    </tr>
+  </tbody>
+</table>
+`
+
+    const event = new window.Event('paste') as ClipboardEvent
+    Object.assign(event, {
+      clipboardData: {
+        getData: (type: string) => (type === 'text/html' ? html : ''),
+      },
+    })
+
+    let handled = false
+    view.someProp('handlePaste', (fn) => {
+      if (fn(view, event)) {
+        handled = true
+        return true
+      }
+      return false
+    })
+
+    expect(handled).toBe(true)
+
+    const doc = view.state.doc
+    const table = doc.firstChild
+    expect(table?.type.name).toBe('gridTable')
+
+    const head = table?.firstChild
+    expect(head?.type.name).toBe('gridTableHead')
+
+    const firstCell = head?.firstChild?.firstChild
+    expect(firstCell?.type.name).toBe('gridTableCell')
+    expect(firstCell?.textContent).toContain('Fruit')
+
+    const body = table?.child(1)
+    expect(body?.type.name).toBe('gridTableBody')
+    const bodyCell = body?.firstChild?.firstChild
+    expect(bodyCell?.textContent).toContain('Apple')
+    expect(firstCell?.attrs.align).toBe('left')
+    expect(bodyCell?.attrs.align).toBe(null)
+  })
+
+  it('should respect gfm table parsing when both gfm and grid table plugins are present', async () => {
+    const editor = Editor.make()
+    editor.use(commonmark).use(clipboard).use(gfm).use(gridTables)
+
+    await editor.create()
+
+    const view = editor.ctx.get(editorViewCtx)
+
+    const html = `
+<table>
+  <thead>
+    <tr>
+      <th>Alpha</th>
+      <th>Beta</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1</td>
+      <td>2</td>
+    </tr>
+  </tbody>
+</table>
+`
+
+    const event = new window.Event('paste') as ClipboardEvent
+    Object.assign(event, {
+      clipboardData: {
+        getData: (type: string) => (type === 'text/html' ? html : ''),
+      },
+    })
+
+    let handled = false
+    view.someProp('handlePaste', (fn) => {
+      if (fn(view, event)) {
+        handled = true
+        return true
+      }
+      return false
+    })
+
+    expect(handled).toBe(true)
+
+    const doc = view.state.doc
+    let tableNode: ProsemirrorNode | null = null
+    let hasGridTable = false
+    doc.descendants((node) => {
+      if (node.type.name === 'gridTable') {
+        hasGridTable = true
+        return true
+      }
+      if (node.type.name === 'table' && !tableNode) {
+        tableNode = node
+        return false
+      }
+      return true
+    })
+
+    expect(hasGridTable).toBe(false)
+    expect(tableNode).toBeTruthy()
+
+    const headerRow = tableNode?.firstChild
+    expect(headerRow?.type.name).toBe('table_header_row')
+    const headerCell = headerRow?.firstChild
+    expect(headerCell?.textContent).toContain('Alpha')
   })
 })
