@@ -3,7 +3,7 @@ import type { NodeType } from '@milkdown/prose/model'
 
 import { $nodeAttr, $nodeSchema } from '@milkdown/utils'
 
-import { withMeta } from './__internal__'
+import { withMeta } from '../__internal__'
 
 // Grid table alignment types
 export type GridTableAlign = 'left' | 'right' | 'center' | 'justify' | null

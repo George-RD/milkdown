@@ -3,7 +3,7 @@ import type { $Remark } from '@milkdown/utils'
 import { $remark } from '@milkdown/utils'
 import remarkGridTablesAdobe from '@adobe/remark-gridtables'
 
-import { withMeta } from './__internal__'
+import { withMeta } from '../__internal__'
 
 /**
  * Remark plugin for grid tables.

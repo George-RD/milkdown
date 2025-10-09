@@ -8,3 +8,6 @@ This directory holds the upcoming compatibility helpers that will:
 
 Current status: only the context slice and registration helpers are stubbed out. The
 refactor task will flesh these out and integrate them with the clipboard plugin.
+
+Please update this file whenever new transforms, serializer hooks, or context
+contracts are added so future agents know how the interop layer fits together.

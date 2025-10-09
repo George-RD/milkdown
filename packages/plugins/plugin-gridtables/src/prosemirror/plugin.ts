@@ -5,7 +5,7 @@ import { Plugin, PluginKey } from '@milkdown/prose/state'
 import { Decoration, DecorationSet } from '@milkdown/prose/view'
 import { $prose, $ctx } from '@milkdown/utils'
 
-import { withMeta } from './__internal__'
+import { withMeta } from '../__internal__'
 // import { gridTableSchema, gridTableCellSchema } from './schema'
 // import { isInGridTable } from './commands'
 

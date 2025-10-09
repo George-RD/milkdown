@@ -1,13 +1,13 @@
 import { $useKeymap } from '@milkdown/utils'
 import { commandsCtx } from '@milkdown/core'
 
-import { withMeta } from './__internal__'
+import { withMeta } from '../__internal__'
 import {
   goToNextGridCellCommand,
   goToPrevGridCellCommand,
   exitGridTableCommand,
   addGridRowAfterCommand,
-} from './commands'
+} from '../commands'
 
 /// Keymap for grid table navigation and manipulation
 export const gridTableKeymap = $useKeymap('gridTableKeymap', {

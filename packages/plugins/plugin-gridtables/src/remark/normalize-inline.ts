@@ -2,7 +2,7 @@ import type { Root } from 'mdast'
 
 import { $remark } from '@milkdown/utils'
 
-import { withMeta } from './__internal__'
+import { withMeta } from '../__internal__'
 
 const allowedMarkers = new Set(['*', '_'])
 const inlineTypes = new Set(['emphasis', 'strong'])

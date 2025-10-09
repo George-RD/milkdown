@@ -17,6 +17,7 @@ Maintain modularity of the shared clipboard plugin by moving grid table–specif
 ### Current Scaffolding Status (2024-XX-XX)
 - [x] Branch `feat/gridtable-interop-refactor` created from `feat/gridtable-plugin`.
 - [x] Initial interop directory scaffolded at `packages/plugins/plugin-gridtables/src/interop/` with placeholder context helpers.
+- [x] Source tree reorganized into domain-specific folders (commands, schema, remark, etc.) with `AGENTS.md` breadcrumbs for future contributors.
 - [ ] Clipboard integration and transform migration outstanding.
 - [ ] Serializer/promotion hooks outstanding.
 
