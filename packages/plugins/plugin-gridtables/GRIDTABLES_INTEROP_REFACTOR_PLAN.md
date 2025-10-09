@@ -14,10 +14,16 @@ Maintain modularity of the shared clipboard plugin by moving grid table–specif
 4. Add regression coverage for paste flows (grid only, GFM only, combined).
 5. Leave follow-on tasks ready for schema tweaks and serialization promotion.
 
+### Current Scaffolding Status (2024-XX-XX)
+- [x] Branch `feat/gridtable-interop-refactor` created from `feat/gridtable-plugin`.
+- [x] Initial interop directory scaffolded at `packages/plugins/plugin-gridtables/src/interop/` with placeholder context helpers.
+- [ ] Clipboard integration and transform migration outstanding.
+- [ ] Serializer/promotion hooks outstanding.
+
 ## Task Breakdown
 
 ### 1. Bootstrap Interop Helper
-- [ ] Add `interop/` module under `packages/plugins/plugin-gridtables/src/`.
+- [x] Add `interop/` module under `packages/plugins/plugin-gridtables/src/`.
 - [ ] Define a `tableInteropCtx` (or similar) that holds DOM transform callbacks.
 - [ ] Provide helper to register transforms during plugin setup.
 - [ ] Unit test the registration mechanism.
