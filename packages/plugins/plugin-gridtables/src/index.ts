@@ -48,6 +48,8 @@ import {
 import {
   gridTableDomTransformsCtx,
   gridTableClipboardInterop,
+  gridTableSerializeTransformsCtx,
+  gridTableSerializerInterop,
 } from './interop'
 
 /// Export schema types for external use
@@ -102,6 +104,10 @@ export {
   gridTableClipboardDomTransform,
   registerGridTableDomTransform,
   resetGridTableDomTransforms,
+  gridTableSerializeTransformsCtx,
+  gridTableSerializerInterop,
+  registerGridTableSerializeTransform,
+  resetGridTableSerializeTransforms,
 } from './interop'
 
 /// Export remark wrapper for advanced usage
@@ -121,6 +127,8 @@ export const gridTables = [
   // Clipboard interop helpers
   gridTableDomTransformsCtx,
   gridTableClipboardInterop,
+  gridTableSerializeTransformsCtx,
+  gridTableSerializerInterop,
 
   // HTML attributes
   gridTableAttr,

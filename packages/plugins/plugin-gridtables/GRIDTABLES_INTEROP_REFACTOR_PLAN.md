@@ -19,7 +19,7 @@ Maintain modularity of the shared clipboard plugin by moving grid table–specif
 - [x] Initial interop directory scaffolded at `packages/plugins/plugin-gridtables/src/interop/` with placeholder context helpers.
 - [x] Source tree reorganized into domain-specific folders (commands, schema, remark, etc.) with `AGENTS.md` breadcrumbs for future contributors.
 - [x] Clipboard integration and transform migration implemented.
-- [ ] Serializer/promotion hooks outstanding.
+- [x] Serializer interop wrapper scaffolded (promotion heuristics still outstanding).
 
 ## Task Breakdown
 
@@ -33,6 +33,11 @@ Maintain modularity of the shared clipboard plugin by moving grid table–specif
 - [x] Update clipboard plugin to read registered transforms (if any) before parsing HTML.
 - [x] Ensure clipboard stays functional when no transforms are registered.
 - [x] Move current header/alignment normalization from clipboard plugin into grid-table interop transform(s).
+- [x] Replace `GRID_TABLE_DOM_TRANSFORM_SLICE` with a clipboard-owned transform slice so the clipboard package has no grid-table-specific knowledge (expose registration helper from clipboard plugin, or accept key injection via config).
+
+### 3. Serializer Interop
+- [x] Add serializer transform context and plugin wrapper.
+- [ ] Implement promotion heuristics that convert eligible grid tables to GFM output.
 
 ### 3. Verification
 - [x] Re-run existing grid-table paste specs (update to use new interop setup).
@@ -43,6 +48,32 @@ Maintain modularity of the shared clipboard plugin by moving grid table–specif
 - [ ] Adjust GFM `parseDOM` rules to recognize headers without `data-is-header`.
 - [ ] Implement grid-table → GFM promotion at serialization.
 - [ ] Ensure table manipulation commands remain consistent across table types.
+
+## Implementation Notes & Guidance
+
+- **Interop context lifecycle**
+  - `registerClipboardDomTransform` now lives in `@milkdown/plugin-clipboard`; grid tables re-export it via `registerGridTableDomTransform`.
+  - `gridTableClipboardInterop` registers the default DOM transform via the shared helper so the clipboard plugin no longer contains grid-table-specific branching.
+  - The clipboard plugin pulls every transform stored in `clipboardDomTransformsCtx` and executes them in registration order before parsing HTML.
+  - Additional transforms should be appended rather than replacing the default; disposable callbacks are returned for test suites.
+
+- **Serializer promotion hook (pending)**
+  - `gridTableSerializeTransformsCtx` and `gridTableSerializerInterop` now wrap the serializer; register promotion transforms through this hook.
+  - Promotion logic should live in a dedicated module under `src/interop/serializers/` (to be created) and operate on ProseMirror nodes before remark serialization.
+  - Prioritise detection of rectangular tables with uniform cell spans; fall back to grid tables when promotion fails. Record detection heuristics directly in this plan once finalised.
+
+- **GFM header parsing follow-up**
+  - Modify `packages/plugins/preset-gfm/src/remark/table.ts` (or the relevant DOM parser module) so `<th>` tags imply header rows without needing `data-is-header`.
+  - After updating the parser, remove the redundant annotation step from the grid-table transform and confirm paste flows still pass.
+
+- **Testing strategy**
+  - Unit: keep `interop/index.spec.ts` focused on registration mechanics; add serializer-specific specs alongside new modules.
+  - Integration: create Vitest-driven clipboard specs under `packages/plugins/plugin-gridtables/src/__tests__/` covering (1) grid-only, (2) GFM-only, and (3) combined plugin orders mirroring the Storybook scenarios.
+  - Storybook: `storybook/stories/plugins/grid-tables.stories.tsx` now reflects five plugin-order permutations for manual verification; keep them updated when adding new behaviour.
+
+- **Documentation & breadcrumbs**
+  - Update the relevant `AGENTS.md` files whenever new interop slices or transforms are introduced so downstream contributors have short pathfinding notes.
+  - Capture any heuristics or edge cases spotted during testing in this plan to avoid regression hunts later.
 
 ## Open Questions / Notes
 - Determine if the interop helper should be exported for third-party table plugins.

@@ -10,25 +10,62 @@ import {
 import { getNodeFromSchema, isTextOnlySlice } from '@milkdown/prose'
 import { DOMParser, DOMSerializer, Slice } from '@milkdown/prose/model'
 import { Plugin, PluginKey, TextSelection } from '@milkdown/prose/state'
-import { $prose } from '@milkdown/utils'
+import { $ctx, $prose } from '@milkdown/utils'
 
 import { isPureText } from './__internal__/is-pure-text'
 import { withMeta } from './__internal__/with-meta'
 
-type ClipboardDomTransform = (input: { dom: Node; schema: Schema }) => void
+export type ClipboardDomTransform = (input: {
+  dom: Node
+  schema: Schema
+}) => void
 
-const GRID_TABLE_DOM_TRANSFORM_SLICE = 'gridTableDomTransforms'
+export const CLIPBOARD_DOM_TRANSFORMS = 'clipboardDomTransforms' as const
+
+export const clipboardDomTransformsCtx = $ctx<
+  ClipboardDomTransform[],
+  typeof CLIPBOARD_DOM_TRANSFORMS
+>([], CLIPBOARD_DOM_TRANSFORMS)
+
+withMeta(clipboardDomTransformsCtx, {
+  displayName: 'Ctx<clipboardDomTransforms>',
+  group: 'Clipboard',
+})
+
+export const registerClipboardDomTransform = (
+  ctx: Ctx,
+  transform: ClipboardDomTransform
+): (() => void) => {
+  if (!ctx.isInjected(clipboardDomTransformsCtx.key)) {
+    ctx.inject(clipboardDomTransformsCtx.key)
+  }
+
+  ctx.update(clipboardDomTransformsCtx.key, (existing) => [
+    ...existing,
+    transform,
+  ])
+
+  return () => {
+    if (!ctx.isInjected(clipboardDomTransformsCtx.key)) return
+    ctx.update(clipboardDomTransformsCtx.key, (existing) =>
+      existing.filter((candidate) => candidate !== transform)
+    )
+  }
+}
+
+export const resetClipboardDomTransforms = (ctx: Ctx): void => {
+  if (!ctx.isInjected(clipboardDomTransformsCtx.key)) return
+  ctx.set(clipboardDomTransformsCtx.key, [])
+}
 
 const runClipboardDomTransforms = (
   ctx: Ctx,
   dom: Node,
   schema: Schema
 ): void => {
-  if (!ctx.isInjected(GRID_TABLE_DOM_TRANSFORM_SLICE)) return
+  if (!ctx.isInjected(clipboardDomTransformsCtx.key)) return
 
-  const transforms = ctx.get(
-    GRID_TABLE_DOM_TRANSFORM_SLICE
-  ) as ClipboardDomTransform[]
+  const transforms = ctx.get(clipboardDomTransformsCtx.key)
 
   transforms.forEach((transform) => {
     try {
@@ -41,6 +78,8 @@ const runClipboardDomTransforms = (
 
 /// The prosemirror plugin for clipboard.
 export const clipboard = $prose((ctx) => {
+  const schema = ctx.get(schemaCtx)
+
   // Set editable props for https://github.com/Milkdown/milkdown/issues/190
   ctx.update(editorViewOptionsCtx, (prev) => ({
     ...prev,
@@ -52,7 +91,6 @@ export const clipboard = $prose((ctx) => {
     key,
     props: {
       handlePaste: (view, event) => {
-        const schema = ctx.get(schemaCtx)
         const parser = ctx.get(parserCtx)
         const editable = view.props.editable?.(view.state)
         const { clipboardData } = event
@@ -132,7 +170,6 @@ export const clipboard = $prose((ctx) => {
         }
       },
       clipboardTextSerializer: (slice) => {
-        const schema = ctx.get(schemaCtx)
         const serializer = ctx.get(serializerCtx)
         const isText = isPureText(slice.content.toJSON())
         if (isText)

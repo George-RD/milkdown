@@ -1,6 +1,14 @@
 import type { Ctx, MilkdownPlugin } from '@milkdown/ctx'
-import type { Schema } from '@milkdown/prose/model'
+import type { Node as ProseNode, Schema } from '@milkdown/prose/model'
+import type { Serializer } from '@milkdown/transformer'
+import {
+  clipboardDomTransformsCtx,
+  registerClipboardDomTransform,
+  resetClipboardDomTransforms,
+  type ClipboardDomTransform,
+} from '@milkdown/plugin-clipboard'
 
+import { serializerCtx, SerializerReady } from '@milkdown/core'
 import { $ctx } from '@milkdown/utils'
 
 import { withMeta } from '../__internal__'
@@ -10,55 +18,82 @@ import { withMeta } from '../__internal__'
  * the ProseMirror parser. Transforms can mutate the provided DOM fragment in
  * place to normalize attributes or restructure nodes.
  */
-export type TableDomTransform = (input: {
-  dom: Node
-  schema: Schema
-}) => void
+export type TableDomTransform = ClipboardDomTransform
 
-/** Context key for all registered grid table DOM transforms. */
-export const GRID_TABLE_DOM_TRANSFORMS = 'gridTableDomTransforms' as const
-
-/**
- * Context slice holding registered DOM transforms. Additional plugins can
- * contribute transforms via {@link registerGridTableDomTransform}.
- */
-export const gridTableDomTransformsCtx = $ctx<TableDomTransform[]>(
-  [],
-  GRID_TABLE_DOM_TRANSFORMS
-)
-
-withMeta(gridTableDomTransformsCtx, {
-  displayName: 'Ctx<gridTableDomTransforms>',
-  group: 'GridTable',
-})
+export const gridTableDomTransformsCtx = clipboardDomTransformsCtx
 
 /**
  * Register a DOM transform and return a disposer that removes it when invoked.
+ * Delegates to the shared clipboard registry so the clipboard plugin remains
+ * unaware of grid table specifics.
  */
 export const registerGridTableDomTransform = (
   ctx: Ctx,
   transform: TableDomTransform
+) => registerClipboardDomTransform(ctx, transform)
+
+/** Reset all registered DOM transforms — primarily useful for tests. */
+export const resetGridTableDomTransforms = (ctx: Ctx): void => {
+  resetClipboardDomTransforms(ctx)
+}
+
+/**
+ * Signature for transforms that run before serializing ProseMirror documents
+ * back to markdown. These transforms can return a new document instance to
+ * adjust table representations (e.g. promote to GFM) prior to serialization.
+ */
+export type TableSerializeTransform = (input: {
+  doc: ProseNode
+  schema: Schema
+}) => ProseNode
+
+/** Context key for registered serializer transforms. */
+export const GRID_TABLE_SERIALIZE_TRANSFORMS =
+  'gridTableSerializeTransforms' as const
+
+/**
+ * Context slice storing serializer transforms. Consumers can register hooks via
+ * {@link registerGridTableSerializeTransform} to inspect or replace tables
+ * before the markdown serializer runs.
+ */
+export const gridTableSerializeTransformsCtx = $ctx<TableSerializeTransform[]>(
+  [],
+  GRID_TABLE_SERIALIZE_TRANSFORMS
+)
+
+withMeta(gridTableSerializeTransformsCtx, {
+  displayName: 'Ctx<gridTableSerializeTransforms>',
+  group: 'GridTable',
+})
+
+/**
+ * Register a serializer transform and return a disposer that removes it.
+ */
+export const registerGridTableSerializeTransform = (
+  ctx: Ctx,
+  transform: TableSerializeTransform
 ): (() => void) => {
-  if (!ctx.isInjected(gridTableDomTransformsCtx.key)) {
-    ctx.inject(gridTableDomTransformsCtx.key)
+  if (!ctx.isInjected(gridTableSerializeTransformsCtx.key)) {
+    ctx.inject(gridTableSerializeTransformsCtx.key)
   }
-  ctx.update(gridTableDomTransformsCtx.key, (existing) => [
+
+  ctx.update(gridTableSerializeTransformsCtx.key, (existing) => [
     ...existing,
     transform,
   ])
 
   return () => {
-    if (!ctx.isInjected(gridTableDomTransformsCtx.key)) return
-    ctx.update(gridTableDomTransformsCtx.key, (existing) =>
+    if (!ctx.isInjected(gridTableSerializeTransformsCtx.key)) return
+    ctx.update(gridTableSerializeTransformsCtx.key, (existing) =>
       existing.filter((candidate) => candidate !== transform)
     )
   }
 }
 
-/** Reset all registered DOM transforms — primarily useful for tests. */
-export const resetGridTableDomTransforms = (ctx: Ctx): void => {
-  if (!ctx.isInjected(gridTableDomTransformsCtx.key)) return
-  ctx.set(gridTableDomTransformsCtx.key, [])
+/** Reset registered serializer transforms — primarily used by tests. */
+export const resetGridTableSerializeTransforms = (ctx: Ctx): void => {
+  if (!ctx.isInjected(gridTableSerializeTransformsCtx.key)) return
+  ctx.set(gridTableSerializeTransformsCtx.key, [])
 }
 
 /** Guard ensuring the DOM fragment can be queried for elements. */
@@ -153,5 +188,57 @@ export const gridTableClipboardInterop: MilkdownPlugin = (ctx) => () => {
 
 withMeta(gridTableClipboardInterop, {
   displayName: 'Plugin<gridTableClipboardInterop>',
+  group: 'GridTable',
+})
+
+const runSerializeTransforms = (
+  ctx: Ctx,
+  doc: ProseNode
+): ProseNode => {
+  if (!ctx.isInjected(gridTableSerializeTransformsCtx.key)) return doc
+
+  const transforms = ctx.get(gridTableSerializeTransformsCtx.key)
+  const schema = doc.type.schema
+
+  return transforms.reduce<ProseNode>((acc, transform) => {
+    try {
+      const next = transform({ doc: acc, schema })
+      return next ?? acc
+    } catch (error) {
+      console.warn('[milkdown/grid-table] serialize transform failed', error)
+      return acc
+    }
+  }, doc)
+}
+
+/**
+ * Plugin that wraps the core serializer so registered transforms can adjust
+ * grid table nodes before they are converted to markdown. Promotion to GFM
+ * tables will hook into this pipeline in a follow-up.
+ */
+export const gridTableSerializerInterop: MilkdownPlugin = (ctx) => async () => {
+  await ctx.wait(SerializerReady)
+
+  const original = ctx.get(serializerCtx)
+
+  const wrapped: Serializer = (doc) => {
+    const transformed = runSerializeTransforms(ctx, doc)
+    return original(transformed)
+  }
+
+  ctx.update(serializerCtx, () => wrapped)
+
+  return () => {
+    if (!ctx.isInjected(serializerCtx)) return
+
+    const current = ctx.get(serializerCtx)
+    if (current === wrapped) {
+      ctx.update(serializerCtx, () => original)
+    }
+  }
+}
+
+withMeta(gridTableSerializerInterop, {
+  displayName: 'Plugin<gridTableSerializerInterop>',
   group: 'GridTable',
 })
