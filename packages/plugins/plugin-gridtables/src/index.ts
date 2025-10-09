@@ -45,6 +45,10 @@ import {
   gridTablePluginConfig,
   gridTableProseMirrorPlugin,
 } from './prosemirror/plugin'
+import {
+  gridTableDomTransformsCtx,
+  gridTableClipboardInterop,
+} from './interop'
 
 /// Export schema types for external use
 export type { GridTableAlign, GridTableVAlign } from './schema'
@@ -92,6 +96,13 @@ export {
   gridTableProseMirrorPlugins,
   gridTablePluginConfig,
 } from './prosemirror/plugin'
+export {
+  gridTableDomTransformsCtx,
+  gridTableClipboardInterop,
+  gridTableClipboardDomTransform,
+  registerGridTableDomTransform,
+  resetGridTableDomTransforms,
+} from './interop'
 
 /// Export remark wrapper for advanced usage
 export { remarkGridTables } from './remark/wrapper'
@@ -106,6 +117,10 @@ export const gridTables = [
   // Remark plugin for markdown parsing
   remarkGridTables,
   remarkGridTablesNormalizeInline,
+
+  // Clipboard interop helpers
+  gridTableDomTransformsCtx,
+  gridTableClipboardInterop,
 
   // HTML attributes
   gridTableAttr,

@@ -18,26 +18,26 @@ Maintain modularity of the shared clipboard plugin by moving grid table–specif
 - [x] Branch `feat/gridtable-interop-refactor` created from `feat/gridtable-plugin`.
 - [x] Initial interop directory scaffolded at `packages/plugins/plugin-gridtables/src/interop/` with placeholder context helpers.
 - [x] Source tree reorganized into domain-specific folders (commands, schema, remark, etc.) with `AGENTS.md` breadcrumbs for future contributors.
-- [ ] Clipboard integration and transform migration outstanding.
+- [x] Clipboard integration and transform migration implemented.
 - [ ] Serializer/promotion hooks outstanding.
 
 ## Task Breakdown
 
 ### 1. Bootstrap Interop Helper
 - [x] Add `interop/` module under `packages/plugins/plugin-gridtables/src/`.
-- [ ] Define a `tableInteropCtx` (or similar) that holds DOM transform callbacks.
-- [ ] Provide helper to register transforms during plugin setup.
-- [ ] Unit test the registration mechanism.
+- [x] Define a `tableInteropCtx` (or similar) that holds DOM transform callbacks.
+- [x] Provide helper to register transforms during plugin setup.
+- [x] Unit test the registration mechanism (`interop.spec.ts`).
 
 ### 2. Wire Clipboard to Interop
-- [ ] Update clipboard plugin to read registered transforms (if any) before parsing HTML.
-- [ ] Ensure clipboard stays functional when no transforms are registered.
-- [ ] Move current header/alignment normalization from clipboard plugin into grid-table interop transform(s).
+- [x] Update clipboard plugin to read registered transforms (if any) before parsing HTML.
+- [x] Ensure clipboard stays functional when no transforms are registered.
+- [x] Move current header/alignment normalization from clipboard plugin into grid-table interop transform(s).
 
 ### 3. Verification
-- [ ] Re-run existing grid-table paste specs (update to use new interop setup).
+- [x] Re-run existing grid-table paste specs (update to use new interop setup).
 - [ ] Add integration tests to confirm behavior with only GFM, only grid tables, and both.
-- [ ] Run `pnpm test:unit`.
+- [x] Run `pnpm test:unit`.
 
 ### 4. Future Follow-ups (to track separately)
 - [ ] Adjust GFM `parseDOM` rules to recognize headers without `data-is-header`.

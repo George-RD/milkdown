@@ -1,13 +1,19 @@
 # Grid Table Interop Layer (Scaffold)
 
-This directory holds the upcoming compatibility helpers that will:
+This directory now provides the clipboard interoperability layer for grid tables.
 
-- Collect DOM preprocessing transforms from grid tables (and optional collaborators).
-- Allow the clipboard plugin to remain generic by iterating registered transforms.
-- Later expose serialization helpers for grid table → GFM promotion.
+- `index.ts` exposes `gridTableDomTransformsCtx`, a context slice that stores
+  DOM preprocessing transforms. The slice is installed automatically when
+  `gridTables` is used.
+- `registerGridTableDomTransform(ctx, transform)` appends transforms and
+  returns a disposer; use this when adding additional clipboard transforms in
+  future refactors.
+- `gridTableClipboardDomTransform` is the default transform that keeps the
+  previous clipboard normalisation behaviour (grid table promotion, GFM header
+  annotations).
+- `gridTableClipboardInterop` registers the default transform with the
+  context. The clipboard plugin will iterate anything stored in this slice.
 
-Current status: only the context slice and registration helpers are stubbed out. The
-refactor task will flesh these out and integrate them with the clipboard plugin.
-
-Please update this file whenever new transforms, serializer hooks, or context
-contracts are added so future agents know how the interop layer fits together.
+When new transforms or serialisation helpers are added, ensure they are
+registered via `registerGridTableDomTransform` and document their behaviour
+here so other contributors can trace the flow quickly.

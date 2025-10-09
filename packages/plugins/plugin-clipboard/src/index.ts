@@ -1,3 +1,4 @@
+import type { Ctx } from '@milkdown/ctx'
 import type { Node as ProsemirrorNode, Schema } from '@milkdown/prose/model'
 
 import {
@@ -14,51 +15,26 @@ import { $prose } from '@milkdown/utils'
 import { isPureText } from './__internal__/is-pure-text'
 import { withMeta } from './__internal__/with-meta'
 
-const isDomSearchable = (node: Node): node is DocumentFragment | Element =>
-  node instanceof DocumentFragment || node instanceof Element
+type ClipboardDomTransform = (input: { dom: Node; schema: Schema }) => void
 
-const normalizeClipboardTables = (root: Node, schema: Schema): void => {
-  if (!isDomSearchable(root)) return
+const GRID_TABLE_DOM_TRANSFORM_SLICE = 'gridTableDomTransforms'
 
-  const gridTableType = schema.nodes['gridTable']
-  const gfmTableType = schema.nodes['table']
-  const shouldUpgradeToGrid = Boolean(gridTableType && !gfmTableType)
-  const shouldAnnotateGfm = Boolean(gfmTableType)
+const runClipboardDomTransforms = (
+  ctx: Ctx,
+  dom: Node,
+  schema: Schema
+): void => {
+  if (!ctx.isInjected(GRID_TABLE_DOM_TRANSFORM_SLICE)) return
 
-  if (!shouldUpgradeToGrid && !shouldAnnotateGfm) return
+  const transforms = ctx.get(
+    GRID_TABLE_DOM_TRANSFORM_SLICE
+  ) as ClipboardDomTransform[]
 
-  root.querySelectorAll('table').forEach((table) => {
-    const isGridTable = table.getAttribute('data-type') === 'grid-table'
-
-    if (shouldUpgradeToGrid) {
-      table.setAttribute('data-type', 'grid-table')
-
-      table.querySelectorAll('th, td').forEach((cell) => {
-        if (!(cell instanceof HTMLElement)) return
-        if (!cell.hasAttribute('data-align')) {
-          const align = cell.getAttribute('align') || cell.style.textAlign
-          if (align) cell.setAttribute('data-align', align)
-        }
-        if (!cell.hasAttribute('data-valign')) {
-          const valign = cell.getAttribute('valign') || cell.style.verticalAlign
-          if (valign) cell.setAttribute('data-valign', valign)
-        }
-      })
-    }
-
-    if (shouldAnnotateGfm && !isGridTable) {
-      const headerRows = table.querySelectorAll('thead tr')
-      if (headerRows.length > 0) {
-        headerRows.forEach((row) => {
-          row.setAttribute('data-is-header', 'true')
-        })
-      } else {
-        const firstRow = table.querySelector('tr')
-        const hasHeaderCell = firstRow?.querySelector('th')
-        if (firstRow && hasHeaderCell) {
-          firstRow.setAttribute('data-is-header', 'true')
-        }
-      }
+  transforms.forEach((transform) => {
+    try {
+      transform({ dom, schema })
+    } catch (error) {
+      console.warn('[milkdown/clipboard] DOM transform failed', error)
     }
   })
 }
@@ -128,7 +104,7 @@ export const clipboard = $prose((ctx) => {
           template.remove()
         }
 
-        normalizeClipboardTables(dom, schema)
+        runClipboardDomTransforms(ctx, dom, schema)
 
         let slice = domParser.parseSlice(dom)
 
