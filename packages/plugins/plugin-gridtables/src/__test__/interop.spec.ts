@@ -137,4 +137,75 @@ describe('Grid table clipboard interop', () => {
 
     template.remove()
   })
+
+  it('promotes tables with merged cells to grid tables when both plugins are active', async () => {
+    const editor = await setupEditor(gridTables, gfm)
+    cleanupEditor = editor
+
+    const ctx = editor.ctx
+    const schema = ctx.get(schemaCtx)
+    const transforms = ctx.get(gridTableDomTransformsCtx.key)
+
+    const template = document.createElement('template')
+    template.innerHTML = `
+      <table>
+        <tbody>
+          <tr>
+            <td rowspan="2" valign="middle">Merged</td>
+            <td>Top Right</td>
+          </tr>
+          <tr>
+            <td>Bottom Right</td>
+          </tr>
+        </tbody>
+      </table>
+    `
+
+    const dom = template.content
+
+    transforms.forEach((transform) => transform({ dom, schema }))
+
+    const table = dom.querySelector('table') as HTMLElement | null
+    expect(table?.getAttribute('data-type')).toBe('grid-table')
+
+    const mergedCell = table?.querySelector('td[rowspan="2"]') as HTMLElement | null
+    expect(mergedCell?.getAttribute('data-valign')).toBe('middle')
+
+    template.remove()
+  })
+
+  it('promotes ragged tables to grid tables when both plugins are active', async () => {
+    const editor = await setupEditor(gridTables, gfm)
+    cleanupEditor = editor
+
+    const ctx = editor.ctx
+    const schema = ctx.get(schemaCtx)
+    const transforms = ctx.get(gridTableDomTransformsCtx.key)
+
+    const template = document.createElement('template')
+    template.innerHTML = `
+      <table>
+        <tbody>
+          <tr>
+            <td>R1C1</td>
+            <td>R1C2</td>
+            <td>R1C3</td>
+          </tr>
+          <tr>
+            <td>R2C1</td>
+            <td>R2C2</td>
+          </tr>
+        </tbody>
+      </table>
+    `
+
+    const dom = template.content
+
+    transforms.forEach((transform) => transform({ dom, schema }))
+
+    const table = dom.querySelector('table') as HTMLElement | null
+    expect(table?.getAttribute('data-type')).toBe('grid-table')
+
+    template.remove()
+  })
 })

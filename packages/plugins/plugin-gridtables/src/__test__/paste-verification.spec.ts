@@ -1,5 +1,11 @@
 import '@testing-library/jest-dom/vitest'
-import { defaultValueCtx, Editor, editorViewCtx, parserCtx } from '@milkdown/core'
+import {
+  defaultValueCtx,
+  Editor,
+  editorViewCtx,
+  parserCtx,
+  serializerCtx,
+} from '@milkdown/core'
 import { gfm } from '@milkdown/preset-gfm'
 import { commonmark } from '@milkdown/preset-commonmark'
 import { expect, it, describe } from 'vitest'
@@ -12,6 +18,26 @@ describe('Paste Path Verification (HTML vs Plain Text)', () => {
 +===================+======+
 | cell              | more |
 +-------------------+------+`
+
+  const complexGridTableText = `+-------------------+------+
+| Table Headings    | Here |
++--------+----------+------+
+| Sub    | Headings | Too  |
++========+=================+
+| cell   | column spanning |
+| spans  +---------:+------+
+| rows   |   normal | cell |
++---v----+:---------------:+
+|        | cells can be    |
+|        | *formatted*     |
+|        | **paragraphs**  |
+|        | \`code\`           |
+| multi  | and contain     |
+| line   | blocks          |
+| cells  | \`code\`           |
++========+=========:+======+
+| footer |    cells |      |
++--------+----------+------+`
 
   it('should parse correctly via remark parser (plain text path) with GFM first', async () => {
     const editor = Editor.make()
@@ -33,6 +59,9 @@ describe('Paste Path Verification (HTML vs Plain Text)', () => {
       throw new Error('Parser returned string instead of doc')
     }
 
+    const serializer = editor.ctx.get(serializerCtx)
+    expect(() => serializer(doc)).not.toThrow()
+
     // Check if it contains a grid table node
     let hasGridTable = false
     doc.descendants((node) => {
@@ -42,6 +71,35 @@ describe('Paste Path Verification (HTML vs Plain Text)', () => {
     })
 
     expect(hasGridTable).toBe(true)
+  })
+
+  it('serializes complex grid tables without triggering gfm errors (gfm first)', async () => {
+    const editor = Editor.make()
+    editor.use(commonmark).use(gfm).use(gridTables)
+
+    editor.config((ctx) => {
+      ctx.set(defaultValueCtx, '')
+    })
+
+    await editor.create()
+
+    const parser = editor.ctx.get(parserCtx)
+    const doc = parser(complexGridTableText)
+
+    expect(doc).toBeTruthy()
+    if (typeof doc === 'string') throw new Error('Parser returned string instead of doc')
+
+    let gridTableCount = 0
+    let gfmTableCount = 0
+    doc.descendants((node) => {
+      if (node.type.name === 'gridTable') gridTableCount += 1
+      if (node.type.name === 'table') gfmTableCount += 1
+    })
+    expect(gridTableCount).toBe(1)
+    expect(gfmTableCount).toBe(0)
+
+    const serializer = editor.ctx.get(serializerCtx)
+    expect(() => serializer(doc)).not.toThrow()
   })
 
   it('should parse correctly via remark parser (plain text path) with gridTables first', async () => {
@@ -63,6 +121,9 @@ describe('Paste Path Verification (HTML vs Plain Text)', () => {
     if (typeof doc === 'string') {
       throw new Error('Parser returned string instead of doc')
     }
+
+    const serializer = editor.ctx.get(serializerCtx)
+    expect(() => serializer(doc)).not.toThrow()
 
     // Check if it contains a grid table node
     let hasGridTable = false
@@ -117,5 +178,10 @@ describe('Paste Path Verification (HTML vs Plain Text)', () => {
 
     expect(count1).toBe(count2)
     expect(count1).toBe(1) // Both should have 1 grid table
+
+    const serializer1 = gfmFirstEditor.ctx.get(serializerCtx)
+    const serializer2 = gridTablesFirstEditor.ctx.get(serializerCtx)
+    expect(() => serializer1(doc1)).not.toThrow()
+    expect(() => serializer2(doc2)).not.toThrow()
   })
 })

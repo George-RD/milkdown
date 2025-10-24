@@ -13,6 +13,12 @@ This directory now provides the clipboard interoperability layer for grid tables
 - `gridTableClipboardDomTransform` is the default transform that keeps the
   previous clipboard normalisation behaviour (grid table promotion, GFM header
   annotations).
+  - When both GFM and grid tables are installed, the transform checks for spans
+    (`rowspan`/`colspan`) or vertical alignment on cells. Tables requiring those
+    features are upgraded to grid tables so remark-gfm never receives an
+    unsupported layout.
+  - Tables with ragged rows (different numbers of cells) are also promoted, as
+    GFM serialisation expects rectangular matrices.
 - `gridTableClipboardInterop` registers the default transform with the
   context. The clipboard plugin will iterate anything stored in this slice.
 - `gridTableSerializeTransformsCtx` mirrors the clipboard slice but for the

@@ -55,6 +55,7 @@ Maintain modularity of the shared clipboard plugin by moving grid table–specif
   - `registerClipboardDomTransform` now lives in `@milkdown/plugin-clipboard`; grid tables re-export it via `registerGridTableDomTransform`.
   - `gridTableClipboardInterop` registers the default DOM transform via the shared helper so the clipboard plugin no longer contains grid-table-specific branching.
   - The clipboard plugin pulls every transform stored in `clipboardDomTransformsCtx` and executes them in registration order before parsing HTML.
+  - Tables pasted with merged cells (`rowspan`/`colspan`), vertical alignment, or ragged rows now automatically upgrade to grid tables even when GFM is present, preventing remark-gfm from receiving unsupported row structures.
   - Additional transforms should be appended rather than replacing the default; disposable callbacks are returned for test suites.
 
 - **Serializer promotion hook (pending)**

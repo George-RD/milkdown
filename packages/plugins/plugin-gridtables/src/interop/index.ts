@@ -100,6 +100,47 @@ export const resetGridTableSerializeTransforms = (ctx: Ctx): void => {
 const isDomSearchable = (node: Node): node is DocumentFragment | Element =>
   node instanceof DocumentFragment || node instanceof Element
 
+/** Detect tables that depend on grid-table semantics (spans, valign, etc.). */
+const requiresGridTableHandling = (table: HTMLElement): boolean => {
+  if (table.getAttribute('data-type') === 'grid-table') return true
+
+  const cells = table.querySelectorAll('th, td')
+  for (const cell of cells) {
+    if (!(cell instanceof HTMLElement)) continue
+
+    const colSpan = Number.parseInt(cell.getAttribute('colspan') || '1', 10)
+    if (Number.isFinite(colSpan) && colSpan > 1) return true
+
+    const rowSpan = Number.parseInt(cell.getAttribute('rowspan') || '1', 10)
+    if (Number.isFinite(rowSpan) && rowSpan > 1) return true
+
+    if (cell.hasAttribute('data-valign') || cell.getAttribute('valign')) {
+      return true
+    }
+  }
+
+  let minCellCount = Number.POSITIVE_INFINITY
+  let maxCellCount = 0
+
+  table.querySelectorAll('tr').forEach((row) => {
+    if (!(row instanceof HTMLElement)) return
+    const count = row.querySelectorAll('th, td').length
+    if (count === 0) {
+      maxCellCount = Math.max(maxCellCount, 0)
+      minCellCount = Math.min(minCellCount, 0)
+      return
+    }
+    maxCellCount = Math.max(maxCellCount, count)
+    minCellCount = Math.min(minCellCount, count)
+  })
+
+  if (minCellCount !== Number.POSITIVE_INFINITY && maxCellCount !== minCellCount) {
+    return true
+  }
+
+  return false
+}
+
 /**
  * Default clipboard transform that performs two responsibilities:
  *
@@ -117,16 +158,20 @@ export const gridTableClipboardDomTransform: TableDomTransform = ({
   const gridTableType = schema.nodes['gridTable']
   const gfmTableType = schema.nodes['table']
 
-  const shouldUpgradeToGrid = Boolean(gridTableType && !gfmTableType)
-  const shouldAnnotateGfm = Boolean(gfmTableType)
+  const gridEnabled = Boolean(gridTableType)
+  const gfmEnabled = Boolean(gfmTableType)
 
-  if (!shouldUpgradeToGrid && !shouldAnnotateGfm) return
+  if (!gridEnabled && !gfmEnabled) return
 
   dom.querySelectorAll('table').forEach((table) => {
     if (!(table instanceof HTMLElement)) return
     const isGridTable = table.getAttribute('data-type') === 'grid-table'
 
-    if (shouldUpgradeToGrid) {
+    const needsGridHandling =
+      gridEnabled &&
+      (!gfmEnabled || isGridTable || requiresGridTableHandling(table))
+
+    if (needsGridHandling) {
       table.setAttribute('data-type', 'grid-table')
 
       table.querySelectorAll('th, td').forEach((cell) => {
@@ -142,7 +187,7 @@ export const gridTableClipboardDomTransform: TableDomTransform = ({
       })
     }
 
-    if (shouldAnnotateGfm && !isGridTable) {
+    if (gfmEnabled && !needsGridHandling) {
       const headerRows = table.querySelectorAll('thead tr')
       if (headerRows.length > 0) {
         headerRows.forEach((row) => {
