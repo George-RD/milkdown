@@ -102,10 +102,7 @@ export function promoteToGfmTable(
     const alignment = mapAlignment(gridCell.attrs.align)
 
     const cellContent = gridCell.content
-    console.log('[promotion] Header cell', i, 'content size:', cellContent.size, 'childCount:', cellContent.childCount)
-    console.log('[promotion] Header cell', i, 'first child type:', cellContent.firstChild?.type.name)
     const headerCell = tableHeaderType.create({ alignment }, cellContent)
-    console.log('[promotion] Created header cell, childCount:', headerCell.childCount)
     headerCells.push(headerCell)
   }
 
@@ -134,10 +131,6 @@ export function promoteToGfmTable(
   const tableContent = [gfmHeaderRow, ...bodyRows]
   const gfmTable = tableType.create(null, Fragment.from(tableContent))
 
-  console.log('[promotion] Created GFM table with', tableContent.length, 'rows')
-  console.log('[promotion] Header row has', headerCells.length, 'cells')
-  console.log('[promotion] First body row has', bodyRows[0]?.childCount, 'cells')
-
   return gfmTable
 }
 
@@ -157,22 +150,16 @@ function mapAlignment(align: string | null): string {
 export function promoteGridTablesToGfm(doc: ProseNode, schema: Schema): ProseNode {
   // Check if GFM table schema exists
   if (!schema.nodes['table']) {
-    console.log('[promotion] No GFM table schema found, skipping promotion')
     return doc
   }
-
-  console.log('[promotion] Starting promotion, scanning document...')
 
   // Recursively transform the document
   const transformNode = (node: ProseNode): ProseNode => {
     // If it's a gridTable, try to promote it
     if (node.type.name === 'gridTable') {
-      console.log('[promotion] Found gridTable, checking if promotable...')
       const canPromote = canPromoteToGfm(node)
-      console.log('[promotion] Can promote:', canPromote)
       if (canPromote) {
         const promoted = promoteToGfmTable(node, schema)
-        console.log('[promotion] Promotion result:', promoted ? 'success' : 'failed')
         if (promoted) return promoted
       }
     }

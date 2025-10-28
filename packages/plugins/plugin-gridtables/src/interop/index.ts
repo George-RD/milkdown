@@ -247,8 +247,6 @@ export const gridTableClipboardDomTransform: TableDomTransform = ({
 }) => {
   if (!isDomSearchable(dom)) return
 
-  console.log('[clipboard] DOM HTML:', dom instanceof DocumentFragment ? Array.from(dom.children).map(c => c.outerHTML).join('\n') : (dom as Element).outerHTML)
-
   const gridTableType = schema.nodes['gridTable']
   const gfmTableType = schema.nodes['table']
 
@@ -261,7 +259,6 @@ export const gridTableClipboardDomTransform: TableDomTransform = ({
   const asciiElementsToRemove: Element[] = []
 
   const tables = dom.querySelectorAll('table')
-  console.log('[clipboard] Found', tables.length, 'tables')
 
   dom.querySelectorAll('table').forEach((table) => {
     if (!(table instanceof HTMLElement)) return
@@ -355,8 +352,6 @@ export const gridTableClipboardDomTransform: TableDomTransform = ({
   asciiElementsToRemove.forEach((element) => {
     element.remove()
   })
-
-  console.log('[clipboard] AFTER transform, DOM HTML:', dom instanceof DocumentFragment ? Array.from(dom.children).map(c => c.outerHTML).join('\n') : (dom as Element).outerHTML)
 }
 
 /**
@@ -413,17 +408,13 @@ export const gridTableSerializerInterop: MilkdownPlugin = (ctx) => async () => {
   const wrapped: Serializer = (doc) => {
     // First, promote compatible gridTables to GFM tables
     const schema = doc.type.schema
-    console.log('[gridTable serializer] About to promote, schema has table:', !!schema.nodes['table'], 'gridTable:', !!schema.nodes['gridTable'])
     let transformed = promoteGridTablesToGfm(doc, schema)
-    console.log('[gridTable serializer] Promotion complete, doc changed:', transformed !== doc)
 
     // Then run any registered custom transforms
     transformed = runSerializeTransforms(ctx, transformed)
 
-    // Debug: call original and intercept to see mdast
-    const originalResult = original(transformed)
-    console.log('[gridTable serializer] Markdown output:', originalResult)
-    return originalResult
+    // Call original serializer
+    return original(transformed)
   }
 
   ctx.update(serializerCtx, () => wrapped)
