@@ -3,6 +3,8 @@ import {
   defaultValueCtx,
   Editor,
   schemaCtx,
+  serializerCtx,
+  parserCtx,
 } from '@milkdown/core'
 import { commonmark } from '@milkdown/preset-commonmark'
 import { gfm } from '@milkdown/preset-gfm'
@@ -260,5 +262,167 @@ describe('Grid table clipboard interop', () => {
     expect(table?.getAttribute('data-type')).toBe('grid-table')
 
     template.remove()
+  })
+})
+
+describe('Grid table serialization promotion', () => {
+  let cleanupEditor: Editor | null = null
+
+  afterEach(async () => {
+    if (cleanupEditor) {
+      await cleanupEditor.destroy()
+      cleanupEditor = null
+    }
+  })
+
+  it('promotes simple gridTable to GFM table during serialization', async () => {
+    const editor = await setupEditor(gridTables, gfm)
+    cleanupEditor = editor
+
+    const ctx = editor.ctx
+
+    // Simple grid table markdown
+    const simpleGridTable = `+--------+-------+
+| Fruit  | Color |
++========+=======+
+| Apple  | Red   |
+| Banana | Yellow|
++--------+-------+`
+
+    const parser = ctx.get(parserCtx)
+    const doc = parser(simpleGridTable)
+
+    expect(doc).toBeTruthy()
+    if (typeof doc === 'string') throw new Error('Parser returned string')
+
+    // Should parse as gridTable initially
+    let hasGridTable = false
+    doc.descendants((node) => {
+      if (node.type.name === 'gridTable') hasGridTable = true
+    })
+    expect(hasGridTable).toBe(true)
+
+    // Serialize should produce GFM pipe table (not ASCII grid)
+    const serializer = ctx.get(serializerCtx)
+    const output = serializer(doc)
+
+    // GFM pipe tables use | separators and --- for header
+    expect(output).toContain('|')
+    expect(output).toContain('---')
+    // Should NOT contain ASCII grid borders
+    expect(output).not.toContain('+===')
+  })
+
+  it('does not promote gridTable with cell spans', async () => {
+    const editor = await setupEditor(gridTables, gfm)
+    cleanupEditor = editor
+
+    const ctx = editor.ctx
+
+    // Grid table with colspan
+    const gridTableWithSpan = `+--------+-------+
+| Fruit  | Color |
++========+=======+
+| Apple  | Red   |
++--------+-------+
+| Banana         |
++----------------+`
+
+    const parser = ctx.get(parserCtx)
+    const doc = parser(gridTableWithSpan)
+
+    expect(doc).toBeTruthy()
+    if (typeof doc === 'string') throw new Error('Parser returned string')
+
+    // Serialize should keep as ASCII grid (not promote to GFM)
+    const serializer = ctx.get(serializerCtx)
+    const output = serializer(doc)
+
+    // Should still be ASCII grid table format
+    expect(output).toContain('+===')
+    expect(output).toContain('+---')
+  })
+
+  it('does not promote gridTable with footer', async () => {
+    const editor = await setupEditor(gridTables, gfm)
+    cleanupEditor = editor
+
+    const ctx = editor.ctx
+
+    // Grid table with footer section
+    const gridTableWithFooter = `+--------+-------+
+| Fruit  | Color |
++========+=======+
+| Apple  | Red   |
++========+=======+
+| Total  | 1     |
++--------+-------+`
+
+    const parser = ctx.get(parserCtx)
+    const doc = parser(gridTableWithFooter)
+
+    expect(doc).toBeTruthy()
+    if (typeof doc === 'string') throw new Error('Parser returned string')
+
+    // Serialize should keep as ASCII grid
+    const serializer = ctx.get(serializerCtx)
+    const output = serializer(doc)
+
+    // Should still be ASCII grid table format
+    expect(output).toContain('+===')
+  })
+
+  it('serializes without errors when GFM loaded before gridTables', async () => {
+    const editor = await setupEditor(gfm, gridTables) // GFM first!
+    cleanupEditor = editor
+
+    const ctx = editor.ctx
+
+    const simpleGridTable = `+--------+-------+
+| Fruit  | Color |
++========+=======+
+| Apple  | Red   |
++--------+-------+`
+
+    const parser = ctx.get(parserCtx)
+    const doc = parser(simpleGridTable)
+
+    expect(doc).toBeTruthy()
+    if (typeof doc === 'string') throw new Error('Parser returned string')
+
+    // This should NOT throw - the bug we're fixing
+    const serializer = ctx.get(serializerCtx)
+    expect(() => serializer(doc)).not.toThrow()
+
+    const output = serializer(doc)
+    expect(output).toBeTruthy()
+    expect(typeof output).toBe('string')
+  })
+
+  it('preserves cell alignment when promoting to GFM', async () => {
+    const editor = await setupEditor(gridTables, gfm)
+    cleanupEditor = editor
+
+    const ctx = editor.ctx
+
+    // Grid table with alignment
+    const gridTableWithAlign = `+--------:+:-------:+
+| Fruit   | Color   |
++=========+=========+
+| Apple   | Red     |
++---------+---------+`
+
+    const parser = ctx.get(parserCtx)
+    const doc = parser(gridTableWithAlign)
+
+    expect(doc).toBeTruthy()
+    if (typeof doc === 'string') throw new Error('Parser returned string')
+
+    const serializer = ctx.get(serializerCtx)
+    const output = serializer(doc)
+
+    // GFM table should have alignment markers in separator row
+    expect(output).toContain(':---:') // center alignment
+    expect(output).toContain('---:')  // right alignment
   })
 })

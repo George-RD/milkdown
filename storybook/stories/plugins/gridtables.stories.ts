@@ -111,3 +111,8 @@ export const GfmGridTablesClipboard = createPluginOrderStory(
   'gfm → gridTables → clipboard',
   [gfm, gridTables, clipboard]
 )
+
+export const ClipboardGfmOnly = createPluginOrderStory(
+  'clipboard → gfm (baseline, no gridTables)',
+  [clipboard, gfm]
+)

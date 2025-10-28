@@ -12,6 +12,7 @@ import { serializerCtx, SerializerReady } from '@milkdown/core'
 import { $ctx } from '@milkdown/utils'
 
 import { withMeta } from '../__internal__'
+import { promoteGridTablesToGfm } from './promotion'
 
 /**
  * Signature for DOM transforms that preprocess clipboard HTML before it enters
@@ -246,6 +247,8 @@ export const gridTableClipboardDomTransform: TableDomTransform = ({
 }) => {
   if (!isDomSearchable(dom)) return
 
+  console.log('[clipboard] DOM HTML:', dom instanceof DocumentFragment ? Array.from(dom.children).map(c => c.outerHTML).join('\n') : (dom as Element).outerHTML)
+
   const gridTableType = schema.nodes['gridTable']
   const gfmTableType = schema.nodes['table']
 
@@ -253,6 +256,12 @@ export const gridTableClipboardDomTransform: TableDomTransform = ({
   const gfmEnabled = Boolean(gfmTableType)
 
   if (!gridEnabled && !gfmEnabled) return
+
+  // Track ASCII elements to remove
+  const asciiElementsToRemove: Element[] = []
+
+  const tables = dom.querySelectorAll('table')
+  console.log('[clipboard] Found', tables.length, 'tables')
 
   dom.querySelectorAll('table').forEach((table) => {
     if (!(table instanceof HTMLElement)) return
@@ -268,6 +277,38 @@ export const gridTableClipboardDomTransform: TableDomTransform = ({
 
     if (needsGridHandling) {
       table.setAttribute('data-type', 'grid-table')
+
+      // If ASCII context exists, find and mark those elements for removal
+      if (asciiContext) {
+        const MAX_ANCESTOR_DEPTH = 2
+        const MAX_SIBLING_HOPS = 4
+
+        const findAsciiElements = (node: Element, direction: 'previous' | 'next'): void => {
+          let sibling: Node | null =
+            direction === 'previous' ? node.previousSibling : node.nextSibling
+          let hops = 0
+
+          while (sibling && hops < MAX_SIBLING_HOPS) {
+            if (sibling instanceof Element && elementContainsAsciiGrid(sibling)) {
+              asciiElementsToRemove.push(sibling)
+            }
+            sibling =
+              direction === 'previous'
+                ? sibling.previousSibling
+                : sibling.nextSibling
+            hops += 1
+          }
+        }
+
+        let current: Element | null = table
+        let depth = 0
+        while (current && depth <= MAX_ANCESTOR_DEPTH) {
+          findAsciiElements(current, 'previous')
+          findAsciiElements(current, 'next')
+          current = current.parentElement
+          depth += 1
+        }
+      }
 
       table.querySelectorAll('th, td').forEach((cell) => {
         if (!(cell instanceof HTMLElement)) return
@@ -309,6 +350,13 @@ export const gridTableClipboardDomTransform: TableDomTransform = ({
       })
     }
   })
+
+  // Remove ASCII grid markup elements that were detected
+  asciiElementsToRemove.forEach((element) => {
+    element.remove()
+  })
+
+  console.log('[clipboard] AFTER transform, DOM HTML:', dom instanceof DocumentFragment ? Array.from(dom.children).map(c => c.outerHTML).join('\n') : (dom as Element).outerHTML)
 }
 
 /**
@@ -353,8 +401,9 @@ const runSerializeTransforms = (
 
 /**
  * Plugin that wraps the core serializer so registered transforms can adjust
- * grid table nodes before they are converted to markdown. Promotion to GFM
- * tables will hook into this pipeline in a follow-up.
+ * grid table nodes before they are converted to markdown. When both GFM and
+ * gridTable schemas are present, automatically promotes compatible gridTables
+ * to GFM format during serialization.
  */
 export const gridTableSerializerInterop: MilkdownPlugin = (ctx) => async () => {
   await ctx.wait(SerializerReady)
@@ -362,8 +411,19 @@ export const gridTableSerializerInterop: MilkdownPlugin = (ctx) => async () => {
   const original = ctx.get(serializerCtx)
 
   const wrapped: Serializer = (doc) => {
-    const transformed = runSerializeTransforms(ctx, doc)
-    return original(transformed)
+    // First, promote compatible gridTables to GFM tables
+    const schema = doc.type.schema
+    console.log('[gridTable serializer] About to promote, schema has table:', !!schema.nodes['table'], 'gridTable:', !!schema.nodes['gridTable'])
+    let transformed = promoteGridTablesToGfm(doc, schema)
+    console.log('[gridTable serializer] Promotion complete, doc changed:', transformed !== doc)
+
+    // Then run any registered custom transforms
+    transformed = runSerializeTransforms(ctx, transformed)
+
+    // Debug: call original and intercept to see mdast
+    const originalResult = original(transformed)
+    console.log('[gridTable serializer] Markdown output:', originalResult)
+    return originalResult
   }
 
   ctx.update(serializerCtx, () => wrapped)
