@@ -575,6 +575,10 @@ importers:
       '@milkdown/utils':
         specifier: workspace:*
         version: link:../../utils
+    devDependencies:
+      '@milkdown/preset-commonmark':
+        specifier: workspace:*
+        version: link:../preset-commonmark
 
   packages/plugins/plugin-collab:
     dependencies:
@@ -670,6 +674,9 @@ importers:
       '@milkdown/exception':
         specifier: workspace:*
         version: link:../../exception
+      '@milkdown/plugin-clipboard':
+        specifier: workspace:*
+        version: link:../plugin-clipboard
       '@milkdown/plugin-slash':
         specifier: workspace:*
         version: link:../plugin-slash

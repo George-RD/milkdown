@@ -4,7 +4,7 @@ import { SerializerState } from '@milkdown/transformer'
 import { describe, expect, it } from 'vitest'
 
 import { gridTables, remarkGridTablesNormalizeInline } from '..'
-import { normalizeGridTableInlineMarkers } from '../remark-normalize-inline'
+import { normalizeGridTableInlineMarkers } from '../remark/normalize-inline'
 
 type MdastNode = {
   type: string

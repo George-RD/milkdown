@@ -3,7 +3,7 @@ import type { NodeType } from '@milkdown/prose/model'
 
 import { $nodeAttr, $nodeSchema } from '@milkdown/utils'
 
-import { withMeta } from './__internal__'
+import { withMeta } from '../__internal__'
 
 // Grid table alignment types
 export type GridTableAlign = 'left' | 'right' | 'center' | 'justify' | null
@@ -25,6 +25,7 @@ export const gridTableSchema = $nodeSchema('gridTable', (_ctx) => ({
   parseDOM: [
     {
       tag: 'table[data-type="grid-table"]',
+      priority: 60, // Higher than default (50) to win over GFM table parser
     },
   ],
   toDOM: () => [
@@ -87,6 +88,7 @@ const createGridTableSectionSchema = ({
     parseDOM: [
       {
         tag: htmlTag,
+        priority: 60, // Higher than default to win over GFM
         getAttrs: (dom) =>
           dom instanceof HTMLElement &&
           dom.closest('table[data-type="grid-table"]')
@@ -181,6 +183,7 @@ export const gridTableRowSchema = $nodeSchema('gridTableRow', (_ctx) => ({
   parseDOM: [
     {
       tag: 'tr',
+      priority: 60, // Higher than default to win over GFM
       getAttrs: (dom) =>
         dom instanceof HTMLElement &&
         dom.closest('table[data-type="grid-table"]')
@@ -241,6 +244,7 @@ export const gridTableCellSchema = $nodeSchema('gridTableCell', (ctx) => ({
   parseDOM: [
     {
       tag: 'td',
+      priority: 60, // Higher than default to win over GFM
       getAttrs: (dom) => {
         if (!(dom instanceof HTMLElement)) return false
         if (!dom.closest('table[data-type="grid-table"]')) return false
@@ -262,6 +266,7 @@ export const gridTableCellSchema = $nodeSchema('gridTableCell', (ctx) => ({
     },
     {
       tag: 'th',
+      priority: 60, // Higher than default to win over GFM
       getAttrs: (dom) => {
         if (!(dom instanceof HTMLElement)) return false
         if (!dom.closest('table[data-type="grid-table"]')) return false

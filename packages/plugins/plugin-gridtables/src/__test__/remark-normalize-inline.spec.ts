@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { normalizeGridTableInlineMarkers } from '../remark-normalize-inline'
+import { normalizeGridTableInlineMarkers } from '../remark/normalize-inline'
 
 type MdastNode = {
   type: string

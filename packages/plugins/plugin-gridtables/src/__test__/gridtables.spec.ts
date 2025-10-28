@@ -437,4 +437,57 @@ describe('Grid Tables Plugin', () => {
     const headerCell = headerRow?.firstChild
     expect(headerCell?.textContent).toContain('Alpha')
   })
+
+  it('should upgrade grid-like HTML with spans to gridTable nodes when gfm loads first', async () => {
+    const html = `
+<table>
+  <tbody>
+    <tr>
+      <td rowspan="2" valign="middle">Merged</td>
+      <td>Top Right</td>
+    </tr>
+    <tr>
+      <td>Bottom Right</td>
+    </tr>
+  </tbody>
+</table>
+`
+    const targetEditor = Editor.make()
+    targetEditor.use(commonmark).use(clipboard).use(gfm).use(gridTables)
+    await targetEditor.create()
+
+    const targetView = targetEditor.ctx.get(editorViewCtx)
+
+    const event = new window.Event('paste') as ClipboardEvent
+    Object.assign(event, {
+      clipboardData: {
+        getData: (type: string) => (type === 'text/html' ? html : ''),
+      },
+    })
+
+    let handled = false
+    targetView.someProp('handlePaste', (fn) => {
+      if (fn(targetView, event)) {
+        handled = true
+        return true
+      }
+      return false
+    })
+
+    expect(handled).toBe(true)
+
+    const doc = targetView.state.doc
+    let gridTableCount = 0
+    let gfmTableCount = 0
+
+    doc.descendants((node) => {
+      if (node.type.name === 'gridTable') gridTableCount += 1
+      if (node.type.name === 'table') gfmTableCount += 1
+    })
+
+    expect(gridTableCount).toBe(1)
+    expect(gfmTableCount).toBe(0)
+
+    await targetEditor.destroy()
+  })
 })

@@ -21,8 +21,8 @@
 import type { SliceType } from '@milkdown/ctx'
 import type { $Ctx, $Prose } from '@milkdown/utils'
 
-import { remarkGridTables } from './remark-wrapper'
-import { remarkGridTablesNormalizeInline } from './remark-normalize-inline'
+import { remarkGridTables } from './remark/wrapper'
+import { remarkGridTablesNormalizeInline } from './remark/normalize-inline'
 
 import {
   gridTableAttr,
@@ -44,7 +44,13 @@ import {
   gridTableProseMirrorPlugins,
   gridTablePluginConfig,
   gridTableProseMirrorPlugin,
-} from './prosemirror-plugin'
+} from './prosemirror/plugin'
+import {
+  gridTableDomTransformsCtx,
+  gridTableClipboardInterop,
+  gridTableSerializeTransformsCtx,
+  gridTableSerializerInterop,
+} from './interop'
 
 /// Export schema types for external use
 export type { GridTableAlign, GridTableVAlign } from './schema'
@@ -91,11 +97,22 @@ export { gridTableInputRules } from './input-rules'
 export {
   gridTableProseMirrorPlugins,
   gridTablePluginConfig,
-} from './prosemirror-plugin'
+} from './prosemirror/plugin'
+export {
+  gridTableDomTransformsCtx,
+  gridTableClipboardInterop,
+  gridTableClipboardDomTransform,
+  registerGridTableDomTransform,
+  resetGridTableDomTransforms,
+  gridTableSerializeTransformsCtx,
+  gridTableSerializerInterop,
+  registerGridTableSerializeTransform,
+  resetGridTableSerializeTransforms,
+} from './interop'
 
 /// Export remark wrapper for advanced usage
-export { remarkGridTables } from './remark-wrapper'
-export { remarkGridTablesNormalizeInline } from './remark-normalize-inline'
+export { remarkGridTables } from './remark/wrapper'
+export { remarkGridTablesNormalizeInline } from './remark/normalize-inline'
 
 /// This plugin wraps [@adobe/remark-gridtables](https://github.com/adobe/remark-gridtables)
 /// and composes cleanly with Milkdown's remark pipeline.
@@ -106,6 +123,12 @@ export const gridTables = [
   // Remark plugin for markdown parsing
   remarkGridTables,
   remarkGridTablesNormalizeInline,
+
+  // Clipboard interop helpers
+  gridTableDomTransformsCtx,
+  gridTableClipboardInterop,
+  gridTableSerializeTransformsCtx,
+  gridTableSerializerInterop,
 
   // HTML attributes
   gridTableAttr,

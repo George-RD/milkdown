@@ -1,8 +1,8 @@
 import { InputRule } from '@milkdown/prose/inputrules'
 import { $inputRule } from '@milkdown/utils'
 
-import { withMeta } from './__internal__'
-import { createGridTable } from './commands'
+import { withMeta } from '../__internal__'
+import { createGridTable } from '../commands'
 
 const GRID_TABLE_DEFAULT_ROWS = 3
 const GRID_TABLE_DEFAULT_COLS = 3

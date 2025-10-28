@@ -1,3 +1,4 @@
+import type { Ctx } from '@milkdown/ctx'
 import type { Node as ProsemirrorNode, Schema } from '@milkdown/prose/model'
 
 import {
@@ -9,62 +10,76 @@ import {
 import { getNodeFromSchema, isTextOnlySlice } from '@milkdown/prose'
 import { DOMParser, DOMSerializer, Slice } from '@milkdown/prose/model'
 import { Plugin, PluginKey, TextSelection } from '@milkdown/prose/state'
-import { $prose } from '@milkdown/utils'
+import { $ctx, $prose } from '@milkdown/utils'
 
 import { isPureText } from './__internal__/is-pure-text'
 import { withMeta } from './__internal__/with-meta'
 
-const isDomSearchable = (node: Node): node is DocumentFragment | Element =>
-  node instanceof DocumentFragment || node instanceof Element
+export type ClipboardDomTransform = (input: {
+  dom: Node
+  schema: Schema
+}) => void
 
-const normalizeClipboardTables = (root: Node, schema: Schema): void => {
-  if (!isDomSearchable(root)) return
+export const CLIPBOARD_DOM_TRANSFORMS = 'clipboardDomTransforms' as const
 
-  const gridTableType = schema.nodes['gridTable']
-  const gfmTableType = schema.nodes['table']
-  const shouldUpgradeToGrid = Boolean(gridTableType && !gfmTableType)
-  const shouldAnnotateGfm = Boolean(gfmTableType)
+export const clipboardDomTransformsCtx = $ctx<
+  ClipboardDomTransform[],
+  typeof CLIPBOARD_DOM_TRANSFORMS
+>([], CLIPBOARD_DOM_TRANSFORMS)
 
-  if (!shouldUpgradeToGrid && !shouldAnnotateGfm) return
+withMeta(clipboardDomTransformsCtx, {
+  displayName: 'Ctx<clipboardDomTransforms>',
+  group: 'Clipboard',
+})
 
-  root.querySelectorAll('table').forEach((table) => {
-    const isGridTable = table.getAttribute('data-type') === 'grid-table'
+export const registerClipboardDomTransform = (
+  ctx: Ctx,
+  transform: ClipboardDomTransform
+): (() => void) => {
+  if (!ctx.isInjected(clipboardDomTransformsCtx.key)) {
+    ctx.inject(clipboardDomTransformsCtx.key)
+  }
 
-    if (shouldUpgradeToGrid) {
-      table.setAttribute('data-type', 'grid-table')
+  ctx.update(clipboardDomTransformsCtx.key, (existing) => [
+    ...existing,
+    transform,
+  ])
 
-      table.querySelectorAll('th, td').forEach((cell) => {
-        if (!(cell instanceof HTMLElement)) return
-        if (!cell.hasAttribute('data-align')) {
-          const align = cell.getAttribute('align') || cell.style.textAlign
-          if (align) cell.setAttribute('data-align', align)
-        }
-        if (!cell.hasAttribute('data-valign')) {
-          const valign = cell.getAttribute('valign') || cell.style.verticalAlign
-          if (valign) cell.setAttribute('data-valign', valign)
-        }
-      })
-    }
+  return () => {
+    if (!ctx.isInjected(clipboardDomTransformsCtx.key)) return
+    ctx.update(clipboardDomTransformsCtx.key, (existing) =>
+      existing.filter((candidate) => candidate !== transform)
+    )
+  }
+}
 
-    if (shouldAnnotateGfm && !isGridTable) {
-      const headerRows = table.querySelectorAll('thead tr')
-      if (headerRows.length > 0) {
-        headerRows.forEach((row) => {
-          row.setAttribute('data-is-header', 'true')
-        })
-      } else {
-        const firstRow = table.querySelector('tr')
-        const hasHeaderCell = firstRow?.querySelector('th')
-        if (firstRow && hasHeaderCell) {
-          firstRow.setAttribute('data-is-header', 'true')
-        }
-      }
+export const resetClipboardDomTransforms = (ctx: Ctx): void => {
+  if (!ctx.isInjected(clipboardDomTransformsCtx.key)) return
+  ctx.set(clipboardDomTransformsCtx.key, [])
+}
+
+const runClipboardDomTransforms = (
+  ctx: Ctx,
+  dom: Node,
+  schema: Schema
+): void => {
+  if (!ctx.isInjected(clipboardDomTransformsCtx.key)) return
+
+  const transforms = ctx.get(clipboardDomTransformsCtx.key)
+
+  transforms.forEach((transform) => {
+    try {
+      transform({ dom, schema })
+    } catch (error) {
+      console.warn('[milkdown/clipboard] DOM transform failed', error)
     }
   })
 }
 
 /// The prosemirror plugin for clipboard.
 export const clipboard = $prose((ctx) => {
+  const schema = ctx.get(schemaCtx)
+
   // Set editable props for https://github.com/Milkdown/milkdown/issues/190
   ctx.update(editorViewOptionsCtx, (prev) => ({
     ...prev,
@@ -76,7 +91,6 @@ export const clipboard = $prose((ctx) => {
     key,
     props: {
       handlePaste: (view, event) => {
-        const schema = ctx.get(schemaCtx)
         const parser = ctx.get(parserCtx)
         const editable = view.props.editable?.(view.state)
         const { clipboardData } = event
@@ -128,7 +142,7 @@ export const clipboard = $prose((ctx) => {
           template.remove()
         }
 
-        normalizeClipboardTables(dom, schema)
+        runClipboardDomTransforms(ctx, dom, schema)
 
         let slice = domParser.parseSlice(dom)
 
@@ -156,7 +170,6 @@ export const clipboard = $prose((ctx) => {
         }
       },
       clipboardTextSerializer: (slice) => {
-        const schema = ctx.get(schemaCtx)
         const serializer = ctx.get(serializerCtx)
         const isText = isPureText(slice.content.toJSON())
         if (isText)

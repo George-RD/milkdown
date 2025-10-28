@@ -93,14 +93,14 @@ export const myPlugin = [
 - Dependencies should use `workspace:*` for internal packages
 - Build configuration should use shared vite config from `@milkdown/dev/vite`
 
-## Grid Tables Plugin Maintenance
+## Grid Tables Plugin Development
 
-The **Grid Tables Plugin** is feature-complete, implementing [adobe/remark-gridtables](https://github.com/adobe/remark-gridtables) for Milkdown. Focus is now on maintenance, bug fixes, and documentation updates.
+The **Grid Tables Plugin** implements [adobe/remark-gridtables](https://github.com/adobe/remark-gridtables) for Milkdown and is currently in active development.
 
 ### Plugin Status
 
 - **Location**: `packages/plugins/plugin-gridtables/`
-- **Status**: Feature-complete, in maintenance mode
+- **Status**: In active development
 - **Tracker**: `packages/plugins/plugin-gridtables/GRIDTABLES_PLUGIN_TRACKER.md` (current work log)
 - **Development Guide**: `packages/plugins/PLUGIN_DEVELOPMENT_GUIDE.md` (standards)
 
@@ -127,7 +127,7 @@ pnpm --filter=@milkdown/docs build
 - Expands `@symbolName` references in template
 - Outputs to `docs/lib/plugin-gridtables.md` (published docs)
 
-### Maintenance Workflow
+### Development Workflow
 
 When fixing bugs or adding features:
 

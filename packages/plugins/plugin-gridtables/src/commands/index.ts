@@ -7,8 +7,8 @@ import { findParentNodeType } from '@milkdown/prose'
 import { $command } from '@milkdown/utils'
 import { paragraphSchema } from '@milkdown/preset-commonmark'
 
-import { withMeta } from './__internal__'
-import type { GridTableAlign, GridTableVAlign } from './schema'
+import { withMeta } from '../__internal__'
+import type { GridTableAlign, GridTableVAlign } from '../schema'
 import {
   gridTableSchema,
   gridTableHeadSchema,
@@ -16,7 +16,7 @@ import {
   gridTableFootSchema,
   gridTableRowSchema,
   gridTableCellSchema,
-} from './schema'
+} from '../schema'
 
 /// Utility function to find parent grid table node
 function findParentGridTable(state: EditorState, ctx: Ctx) {
