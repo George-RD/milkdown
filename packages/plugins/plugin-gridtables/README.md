@@ -30,6 +30,40 @@ Editor.make()
 - **Multi-line Cells**: Support for complex content across multiple lines
 - **ASCII Syntax**: Human-readable grid table format in source
 
+## GFM Interoperability
+
+When used alongside `@milkdown/preset-gfm`, gridTables intelligently adapts output:
+
+- **Simple tables** → Serialize as GFM pipe tables (portable, compatible)
+- **Complex tables** → Serialize as ASCII grid tables (preserves all features)
+
+### What makes a table "simple"?
+
+A gridTable is promoted to GFM format when it meets ALL criteria:
+- No cell spans (all cells are 1x1)
+- Rectangular structure (all rows have same cell count)
+- Single header row only
+- No footer section
+- No vertical alignment
+- Each cell contains exactly one paragraph
+
+### Plugin Order Independence
+
+Load plugins in any order - the behavior is consistent:
+
+```ts
+// All of these work identically:
+Editor.make().use(commonmark).use(gfm).use(gridTables).create()
+Editor.make().use(commonmark).use(gridTables).use(gfm).create()
+Editor.make().use(commonmark).use(gridTables).create() // gridTables only
+```
+
+### Clipboard Behavior
+
+- **Paste ASCII grid tables**: Automatically detected and parsed as gridTables
+- **Paste GFM pipe tables**: Parsed by GFM (when loaded)
+- **Copy from editor**: Tables intelligently convert based on complexity
+
 ## Commands
 
 ```ts
@@ -109,3 +143,13 @@ Cells may contain full markdown (lists, code blocks, inline formatting). Section
 - `Tab` / `Shift-Tab` - Navigate between cells
 - `Mod-Enter` - Exit table
 - Arrow keys - Navigate cells (when cursor is at cell edge)
+
+## Known Issues
+
+### Cross-Editor Paste
+
+Copying a gridTable from a gridTables-enabled editor and pasting into a GFM-only editor may cause errors. 
+
+**Workaround**: Use plain-text paste (Cmd+Shift+V / Ctrl+Shift+V) when copying between editors with different plugin configurations.
+
+See [KNOWN_ISSUES.md](./KNOWN_ISSUES.md) for details and future solutions.

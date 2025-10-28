@@ -127,6 +127,8 @@ pollution.
 
 ## Troubleshooting
 
+For known cross-editor compatibility issues, see [KNOWN_ISSUES.md](../../../KNOWN_ISSUES.md).
+
 ### TypeError in remark-gfm during serialization
 
 **Symptom**: `TypeError: Cannot read properties of undefined (reading 'length')`
