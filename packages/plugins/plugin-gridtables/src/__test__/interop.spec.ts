@@ -208,4 +208,57 @@ describe('Grid table clipboard interop', () => {
 
     template.remove()
   })
+
+  it('promotes tables when ASCII grid markup lives inside nearby wrappers', async () => {
+    const editor = await setupEditor(gridTables, gfm)
+    cleanupEditor = editor
+
+    const ctx = editor.ctx
+    const schema = ctx.get(schemaCtx)
+    const transforms = ctx.get(gridTableDomTransformsCtx.key)
+
+    const hardbreakSpan =
+      '<span data-type="hardbreak" data-is-inline="true"> </span>'
+    const ascii = [
+      '+------+------+',
+      '| Foo  | Bar  |',
+      '+======+======+',
+      '| Baz  | Qux  |',
+      '+------+------+',
+    ]
+      .map((line) => `${line}${hardbreakSpan}`)
+      .join('')
+
+    const template = document.createElement('template')
+    template.innerHTML = `
+      <section class="preview">
+        <div class="code-block">
+          <p>${ascii}</p>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <tbody>
+              <tr>
+                <td>R1C1</td>
+                <td>R1C2</td>
+              </tr>
+              <tr>
+                <td>R2C1</td>
+                <td>R2C2</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    `
+
+    const dom = template.content
+
+    transforms.forEach((transform) => transform({ dom, schema }))
+
+    const table = dom.querySelector('table') as HTMLElement | null
+    expect(table?.getAttribute('data-type')).toBe('grid-table')
+
+    template.remove()
+  })
 })

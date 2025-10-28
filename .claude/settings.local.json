@@ -1,4 +1,5 @@
 {
+  "includeCoAuthoredBy": false,
   "permissions": {
     "allow": [
       "WebSearch",
@@ -29,6 +30,5 @@
     "ask": []
   },
   "enableAllProjectMcpServers": false,
-  "outputStyle": "main",
-  "includeCoAuthoredBy": false
+  "outputStyle": "evolutionary"
 }

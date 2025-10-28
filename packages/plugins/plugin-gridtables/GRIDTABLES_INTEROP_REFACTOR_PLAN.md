@@ -51,6 +51,10 @@ Maintain modularity of the shared clipboard plugin by moving grid table–specif
 
 ## Implementation Notes & Guidance
 
+### Status Log (2025-10-27)
+- Clipboard regression captured at `packages/plugins/plugin-gridtables/src/__test__/paste-verification.spec.ts` using the sanitized HTML emitted when copying the Storybook “Complex Grid Table” sample (ASCII `<p>` + `<table>`).
+- `gridTableClipboardDomTransform` now promotes tables when an adjacent ASCII grid block is detected, ensuring GFM never receives the ragged table fallback.
+
 - **Interop context lifecycle**
   - `registerClipboardDomTransform` now lives in `@milkdown/plugin-clipboard`; grid tables re-export it via `registerGridTableDomTransform`.
   - `gridTableClipboardInterop` registers the default DOM transform via the shared helper so the clipboard plugin no longer contains grid-table-specific branching.

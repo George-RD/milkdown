@@ -100,6 +100,97 @@ export const resetGridTableSerializeTransforms = (ctx: Ctx): void => {
 const isDomSearchable = (node: Node): node is DocumentFragment | Element =>
   node instanceof DocumentFragment || node instanceof Element
 
+const ASCII_BORDER_PATTERN = /^\+(?:[-=+:]+\+)+$/u
+const ASCII_CELL_PATTERN = /^\|.+\|$/u
+
+const normalizeAsciiCandidate = (element: Element): string => {
+  return element.innerHTML
+    .replace(/<span[^>]+data-type=["']hardbreak["'][^>]*>.*?<\/span>/gi, '\n')
+    .replace(/<br\s*\/?\s*>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\u00a0/g, ' ')
+    .replace(/[ \t]+\n/gu, '\n')
+    .replace(/\n[ \t]+/gu, '\n')
+    .trim()
+}
+
+const isAsciiParagraph = (element: Element): boolean => {
+  const tagName = element.tagName?.toLowerCase()
+  if (tagName !== 'p' && tagName !== 'pre') return false
+
+  const normalized = normalizeAsciiCandidate(element)
+  if (!normalized) return false
+
+  const lines = normalized.split(/\r?\n/)
+  let borderLines = 0
+  let cellLines = 0
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim()
+    if (!line) continue
+
+    if (ASCII_BORDER_PATTERN.test(line)) {
+      borderLines += 1
+      continue
+    }
+
+    if (ASCII_CELL_PATTERN.test(line)) {
+      cellLines += 1
+    }
+  }
+
+  return borderLines >= 2 && cellLines >= 2
+}
+
+const elementContainsAsciiGrid = (element: Element | null): boolean => {
+  if (!element) return false
+  if (isAsciiParagraph(element)) return true
+
+  const descendants = element.querySelectorAll('p, pre')
+  for (const candidate of descendants) {
+    if (isAsciiParagraph(candidate)) return true
+  }
+
+  return false
+}
+
+/** Determine whether a table is surrounded by ASCII grid markup. */
+const hasAsciiGridContext = (table: HTMLElement): boolean => {
+  const MAX_ANCESTOR_DEPTH = 2
+  const MAX_SIBLING_HOPS = 4
+
+  const searchSiblings = (node: Element, direction: 'previous' | 'next'): boolean => {
+    let sibling: Node | null =
+      direction === 'previous' ? node.previousSibling : node.nextSibling
+    let hops = 0
+
+    while (sibling && hops < MAX_SIBLING_HOPS) {
+      if (sibling instanceof Element && elementContainsAsciiGrid(sibling)) {
+        return true
+      }
+      sibling =
+        direction === 'previous'
+          ? sibling.previousSibling
+          : sibling.nextSibling
+      hops += 1
+    }
+
+    return false
+  }
+
+  let current: Element | null = table
+  let depth = 0
+  while (current && depth <= MAX_ANCESTOR_DEPTH) {
+    if (searchSiblings(current, 'previous') || searchSiblings(current, 'next')) {
+      return true
+    }
+    current = current.parentElement
+    depth += 1
+  }
+
+  return false
+}
+
 /** Detect tables that depend on grid-table semantics (spans, valign, etc.). */
 const requiresGridTableHandling = (table: HTMLElement): boolean => {
   if (table.getAttribute('data-type') === 'grid-table') return true
@@ -167,9 +258,13 @@ export const gridTableClipboardDomTransform: TableDomTransform = ({
     if (!(table instanceof HTMLElement)) return
     const isGridTable = table.getAttribute('data-type') === 'grid-table'
 
+    const asciiContext = hasAsciiGridContext(table)
     const needsGridHandling =
       gridEnabled &&
-      (!gfmEnabled || isGridTable || requiresGridTableHandling(table))
+      (!gfmEnabled ||
+        isGridTable ||
+        asciiContext ||
+        requiresGridTableHandling(table))
 
     if (needsGridHandling) {
       table.setAttribute('data-type', 'grid-table')
