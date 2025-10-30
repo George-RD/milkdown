@@ -301,7 +301,7 @@ export const gridTableCellSchema = $nodeSchema('gridTableCell', (ctx) => ({
     }
     if (valign) {
       attrs['data-valign'] = valign
-      attrs.style = (attrs.style || '') + `;vertical-align: ${valign}`
+      attrs.style = attrs.style ? `${attrs.style};vertical-align: ${valign}` : `vertical-align: ${valign}`
     }
 
     return ['td', attrs, 0]
