@@ -258,8 +258,6 @@ export const gridTableClipboardDomTransform: TableDomTransform = ({
   // Track ASCII elements to remove
   const asciiElementsToRemove: Element[] = []
 
-  const tables = dom.querySelectorAll('table')
-
   dom.querySelectorAll('table').forEach((table) => {
     if (!(table instanceof HTMLElement)) return
     const isGridTable = table.getAttribute('data-type') === 'grid-table'
