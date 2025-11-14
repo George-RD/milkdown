@@ -4,6 +4,10 @@ import { $remark } from '@milkdown/utils'
 
 import { withMeta } from '../__internal__'
 
+// Only '*' and '_' are allowed as inline markers in grid table cells.
+// This restriction is based on the adobe/remark-gridtables specification,
+// which only supports these two markers for emphasis and strong formatting.
+// See: https://github.com/adobe/remark-gridtables#limitations
 const allowedMarkers = new Set(['*', '_'])
 const inlineTypes = new Set(['emphasis', 'strong'])
 
