@@ -255,8 +255,8 @@ export const gridTableClipboardDomTransform: TableDomTransform = ({
 
   if (!gridEnabled && !gfmEnabled) return
 
-  // Track ASCII elements to remove
-  const asciiElementsToRemove: Element[] = []
+  // Track ASCII elements to remove (using Set to prevent duplicates)
+  const asciiElementsToRemove = new Set<Element>()
 
   dom.querySelectorAll('table').forEach((table) => {
     if (!(table instanceof HTMLElement)) return
@@ -285,7 +285,7 @@ export const gridTableClipboardDomTransform: TableDomTransform = ({
 
           while (sibling && hops < MAX_SIBLING_HOPS) {
             if (sibling instanceof Element && elementContainsAsciiGrid(sibling)) {
-              asciiElementsToRemove.push(sibling)
+              asciiElementsToRemove.add(sibling)
             }
             sibling =
               direction === 'previous'
