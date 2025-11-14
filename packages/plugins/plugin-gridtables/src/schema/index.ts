@@ -295,13 +295,18 @@ export const gridTableCellSchema = $nodeSchema('gridTableCell', (ctx) => ({
 
     if (colSpan > 1) attrs.colspan = String(colSpan)
     if (rowSpan > 1) attrs.rowspan = String(rowSpan)
+    // Build style string robustly
+    const styles: string[] = attrs.style ? attrs.style.split(';').filter(Boolean) : [];
     if (align) {
-      attrs['data-align'] = align
-      attrs.style = `text-align: ${align}`
+      attrs['data-align'] = align;
+      styles.push(`text-align: ${align}`);
     }
     if (valign) {
-      attrs['data-valign'] = valign
-      attrs.style = attrs.style ? `${attrs.style};vertical-align: ${valign}` : `vertical-align: ${valign}`
+      attrs['data-valign'] = valign;
+      styles.push(`vertical-align: ${valign}`);
+    }
+    if (styles.length > 0) {
+      attrs.style = styles.join('; ');
     }
 
     return ['td', attrs, 0]
