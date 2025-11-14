@@ -386,7 +386,9 @@ const runSerializeTransforms = (
       const next = transform({ doc: acc, schema })
       return next ?? acc
     } catch (error) {
-      console.warn('[milkdown/grid-table] serialize transform failed', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[milkdown/grid-table] serialize transform failed', error)
+      }
       return acc
     }
   }, doc)
