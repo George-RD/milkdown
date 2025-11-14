@@ -21,9 +21,16 @@ import {
 
 function createPointerMoveHandler(
   refs: Refs,
-  view?: EditorView
+  view?: EditorView,
+  leaveTimeoutRef?: { current: ReturnType<typeof setTimeout> | null }
 ): (e: PointerEvent) => void {
   return throttle((e: PointerEvent) => {
+    // Cancel any pending pointerLeave timeout
+    if (leaveTimeoutRef?.current) {
+      clearTimeout(leaveTimeoutRef.current)
+      leaveTimeoutRef.current = null
+    }
+
     if (!view?.editable) return
     const {
       contentWrapperRef,
@@ -47,8 +54,68 @@ function createPointerMoveHandler(
     const cellHandle = cellHandleRef.value
     if (!cellHandle) return
 
+    // Check if pointer is over any handle element - if so, maintain current handle visibility
+    const target = e.target as Element | null
+    const isOverHandle =
+      target?.closest('[data-role="col-drag-handle"]') ||
+      target?.closest('[data-role="row-drag-handle"]') ||
+      target?.closest('[data-role="cell-handle"]') ||
+      target?.closest('[data-role="x-line-drag-handle"]') ||
+      target?.closest('[data-role="y-line-drag-handle"]')
+
+    // If over a handle, maintain handle visibility at the last known position
+    if (isOverHandle) {
+      const currentIndex = hoverIndex.value
+      if (currentIndex[0] >= 0 && currentIndex[1] >= 0) {
+        const dom = getRelatedDOM(contentWrapperRef, currentIndex)
+        if (dom) {
+          // Re-compute handle positions to ensure they stay visible and properly positioned
+          computeRowHandlePositionByIndex({ refs, index: currentIndex })
+          computeColHandlePositionByIndex({ refs, index: currentIndex })
+          computeCellHandlePositionByIndex({ refs, index: currentIndex })
+          // Hide line handles when over cell handles
+          yHandle.dataset.show = 'false'
+          xHandle.dataset.show = 'false'
+          clearLineHoverIndex(refs)
+        }
+      }
+      return
+    }
+
     const pointerIndex = findPointerIndex(e, view)
-    if (!pointerIndex) return
+    if (!pointerIndex) {
+      // If we can't find a cell index but we have a previous hover index,
+      // maintain the handles at that position to prevent them from disappearing
+      // when moving from cell towards handle
+      const currentIndex = hoverIndex.value
+      if (currentIndex[0] >= 0 && currentIndex[1] >= 0) {
+        const dom = getRelatedDOM(contentWrapperRef, currentIndex)
+        if (dom) {
+          // Check if pointer is still within reasonable distance of the last known cell
+          const cellRect = dom.col.getBoundingClientRect()
+          const distanceX = Math.abs(e.clientX - (cellRect.left + cellRect.width / 2))
+          const distanceY = Math.abs(e.clientY - (cellRect.top + cellRect.height / 2))
+          const maxDistance = Math.max(cellRect.width, cellRect.height) * 2
+
+          // If pointer is still near the cell, maintain handle visibility
+          // by re-computing their positions at the last known index
+          if (distanceX < maxDistance && distanceY < maxDistance) {
+            // Ensure handles remain visible and positioned
+            computeRowHandlePositionByIndex({ refs, index: currentIndex })
+            computeColHandlePositionByIndex({ refs, index: currentIndex })
+            computeCellHandlePositionByIndex({ refs, index: currentIndex })
+            // Hide line handles when not at boundary
+            yHandle.dataset.show = 'false'
+            xHandle.dataset.show = 'false'
+            clearLineHoverIndex(refs)
+            return
+          }
+        }
+      }
+      // If we can't find a cell and we're not near the last known cell,
+      // don't update handles but also don't hide them (let pointerLeave handle that)
+      return
+    }
 
     const dom = getRelatedDOM(contentWrapperRef, pointerIndex)
     if (!dom) return
@@ -141,10 +208,19 @@ function createPointerMoveHandler(
   }, 20)
 }
 
-function createPointerLeaveHandler(refs: Refs): () => void {
+function createPointerLeaveHandler(
+  refs: Refs,
+  leaveTimeoutRef: { current: ReturnType<typeof setTimeout> | null }
+): () => void {
   return () => {
+    // Cancel any existing timeout
+    if (leaveTimeoutRef.current) {
+      clearTimeout(leaveTimeoutRef.current)
+    }
+
     const { rowHandleRef, colHandleRef, cellHandleRef, yLineHandleRef, xLineHandleRef } = refs
-    setTimeout(() => {
+    leaveTimeoutRef.current = setTimeout(() => {
+      leaveTimeoutRef.current = null
       const rowHandle = rowHandleRef.value
       if (!rowHandle) return
       const colHandle = colHandleRef.value
@@ -166,8 +242,10 @@ function createPointerLeaveHandler(refs: Refs): () => void {
 }
 
 export function usePointerHandlers(refs: Refs, view?: EditorView) {
-  const pointerMove = createPointerMoveHandler(refs, view)
-  const pointerLeave = createPointerLeaveHandler(refs)
+  // Shared timeout ref to allow pointerMove to cancel pointerLeave timeout
+  const leaveTimeoutRef: { current: ReturnType<typeof setTimeout> | null } = { current: null }
+  const pointerMove = createPointerMoveHandler(refs, view, leaveTimeoutRef)
+  const pointerLeave = createPointerLeaveHandler(refs, leaveTimeoutRef)
 
   return {
     pointerMove,
