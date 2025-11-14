@@ -281,6 +281,9 @@ importers:
       '@milkdown/exception':
         specifier: workspace:*
         version: link:../exception
+      '@milkdown/plugin-gridtables':
+        specifier: workspace:*
+        version: link:../plugins/plugin-gridtables
       '@milkdown/plugin-tooltip':
         specifier: workspace:*
         version: link:../plugins/plugin-tooltip

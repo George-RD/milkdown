@@ -34,6 +34,9 @@
     },
     "./table-block": {
       "import": "./src/table-block/index.ts"
+    },
+    "./grid-table-block": {
+      "import": "./src/grid-table-block/index.ts"
     }
   },
   "main": "./src/index.ts",
@@ -68,6 +71,10 @@
       "./table-block": {
         "types": "./lib/table-block/index.d.ts",
         "import": "./lib/table-block/index.js"
+      },
+      "./grid-table-block": {
+        "types": "./lib/grid-table-block/index.d.ts",
+        "import": "./lib/grid-table-block/index.js"
       }
     },
     "typesVersions": {
@@ -89,6 +96,9 @@
         ],
         "table-block": [
           "./lib/table-block/index.d.ts"
+        ],
+        "grid-table-block": [
+          "./lib/grid-table-block/index.d.ts"
         ]
       }
     }
@@ -110,6 +120,7 @@
     "@milkdown/core": "workspace:*",
     "@milkdown/ctx": "workspace:*",
     "@milkdown/exception": "workspace:*",
+    "@milkdown/plugin-gridtables": "workspace:*",
     "@milkdown/plugin-tooltip": "workspace:*",
     "@milkdown/preset-commonmark": "workspace:*",
     "@milkdown/preset-gfm": "workspace:*",
