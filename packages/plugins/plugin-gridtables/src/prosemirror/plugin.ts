@@ -155,8 +155,9 @@ function updateHoverDecorations(
     }
   } catch (error) {
     // Position might be invalid, return empty decorations
-    console.warn('Invalid position for grid table hover decoration:', error)
-  }
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Invalid position for grid table hover decoration:', error)
+    }
 
   return DecorationSet.empty
 }
