@@ -1,4 +1,5 @@
-import type { Node as ProsemirrorNode } from '@milkdown/prose/model'
+import type { Ctx } from '@milkdown/ctx'
+import type { Node as ProsemirrorNode, Schema } from '@milkdown/prose/model'
 
 import {
   editorViewOptionsCtx,
@@ -7,12 +8,75 @@ import {
   serializerCtx,
 } from '@milkdown/core'
 import { getNodeFromSchema, isTextOnlySlice } from '@milkdown/prose'
-import { DOMParser, DOMSerializer } from '@milkdown/prose/model'
+import { DOMParser, DOMSerializer, Slice } from '@milkdown/prose/model'
 import { Plugin, PluginKey, TextSelection } from '@milkdown/prose/state'
-import { $prose } from '@milkdown/utils'
+import { $ctx, $prose } from '@milkdown/utils'
 
 import { isPureText } from './__internal__/is-pure-text'
 import { withMeta } from './__internal__/with-meta'
+
+export type ClipboardDomTransform = (input: {
+  dom: Node
+  schema: Schema
+}) => void
+
+export const CLIPBOARD_DOM_TRANSFORMS = 'clipboardDomTransforms' as const
+
+export const clipboardDomTransformsCtx = $ctx<
+  ClipboardDomTransform[],
+  typeof CLIPBOARD_DOM_TRANSFORMS
+>([], CLIPBOARD_DOM_TRANSFORMS)
+
+withMeta(clipboardDomTransformsCtx, {
+  displayName: 'Ctx<clipboardDomTransforms>',
+  group: 'Clipboard',
+})
+
+export const registerClipboardDomTransform = (
+  ctx: Ctx,
+  transform: ClipboardDomTransform
+): (() => void) => {
+  if (!ctx.isInjected(clipboardDomTransformsCtx.key)) {
+    ctx.inject(clipboardDomTransformsCtx.key)
+  }
+
+  ctx.update(clipboardDomTransformsCtx.key, (existing) => [
+    ...existing,
+    transform,
+  ])
+
+  return () => {
+    if (!ctx.isInjected(clipboardDomTransformsCtx.key)) return
+    ctx.update(clipboardDomTransformsCtx.key, (existing) =>
+      existing.filter((candidate) => candidate !== transform)
+    )
+  }
+}
+
+export const resetClipboardDomTransforms = (ctx: Ctx): void => {
+  if (!ctx.isInjected(clipboardDomTransformsCtx.key)) return
+  ctx.set(clipboardDomTransformsCtx.key, [])
+}
+
+const runClipboardDomTransforms = (
+  ctx: Ctx,
+  dom: Node,
+  schema: Schema
+): void => {
+  if (!ctx.isInjected(clipboardDomTransformsCtx.key)) return
+
+  const transforms = ctx.get(clipboardDomTransformsCtx.key)
+
+  transforms.forEach((transform) => {
+    try {
+      transform({ dom, schema })
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[milkdown/clipboard] DOM transform failed', error)
+      }
+    }
+  })
+}
 
 /// The prosemirror plugin for clipboard.
 export const clipboard = $prose((ctx) => {
@@ -80,7 +144,20 @@ export const clipboard = $prose((ctx) => {
           template.remove()
         }
 
-        const slice = domParser.parseSlice(dom)
+        runClipboardDomTransforms(ctx, dom, schema)
+
+        let slice = domParser.parseSlice(dom)
+
+        if (slice.openStart > 0 || slice.openEnd > 0) {
+          const { firstChild, lastChild } = slice.content
+
+          if (firstChild?.type.spec.isolating || lastChild?.type.spec.isolating) {
+            const normalized = Slice.maxOpen(slice.content, false)
+            if (normalized.openStart < slice.openStart || normalized.openEnd < slice.openEnd) {
+              slice = normalized
+            }
+          }
+        }
         const node = isTextOnlySlice(slice)
         if (node) {
           view.dispatch(view.state.tr.replaceSelectionWith(node, true))
