@@ -71,7 +71,9 @@ const runClipboardDomTransforms = (
     try {
       transform({ dom, schema })
     } catch (error) {
-      console.warn('[milkdown/clipboard] DOM transform failed', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[milkdown/clipboard] DOM transform failed', error)
+      }
     }
   })
 }
