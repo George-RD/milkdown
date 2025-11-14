@@ -1,0 +1,34 @@
+{
+  "includeCoAuthoredBy": false,
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:milkdown.dev)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(pnpm build:*)",
+      "Bash(find:*)",
+      "Bash(pnpm install:*)",
+      "Bash(node:*)",
+      "Bash(pnpm test:*)",
+      "Bash(npx vitest run:*)",
+      "Bash(npx tsc:*)",
+      "Bash(grep:*)",
+      "Bash(npx vitest:*)",
+      "Bash(curl:*)",
+      "Bash(pnpm --filter=@milkdown/plugin-gridtables run build)",
+      "Bash(pnpm start:*)",
+      "Bash(pnpm --filter=@milkdown/plugin-gridtables run test)",
+      "Bash(mkdir:*)",
+      "Bash(pnpm dev:*)",
+      "Bash(pnpm --filter=@milkdown/plugin-gridtables test)",
+      "Bash(git add:*)",
+      "Read(//Users/george/repos/**)"
+    ],
+    "deny": [],
+    "ask": []
+  },
+  "enableAllProjectMcpServers": false,
+  "outputStyle": "evolutionary"
+}
