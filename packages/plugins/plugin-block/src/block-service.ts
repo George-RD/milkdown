@@ -185,23 +185,76 @@ export class BlockService {
     if (!view.editable) return
 
     const rect = view.dom.getBoundingClientRect()
-    const x = rect.left + rect.width / 2
-    const dom = view.root.elementFromPoint(x, event.clientY)
-    if (!(dom instanceof Element)) {
+    const centerX = rect.left + rect.width / 2
+    const mouseX = event.clientX
+    const mouseY = event.clientY
+
+    // Check if mouse is within editor bounds (with margin for handle area)
+    // The handle is typically positioned to the left of blocks, so we allow
+    // a margin to the left of the editor for handle interaction
+    const handleMargin = 100 // Approximate width of handle + gap
+    const isWithinEditorBounds =
+      mouseX >= rect.left - handleMargin &&
+      mouseX <= rect.right &&
+      mouseY >= rect.top &&
+      mouseY <= rect.bottom
+
+    // If mouse is outside editor bounds (including handle area), hide handle
+    if (!isWithinEditorBounds) {
       this.#hide()
       return
+    }
+
+    // Use actual mouse position for elementFromPoint to detect what's really under the cursor
+    // This is critical when moving from cells towards handles - we need to know
+    // if we're actually over a table cell or over empty space/handle area
+    const dom = view.root.elementFromPoint(mouseX, mouseY)
+    
+    // Check if the element is the handle itself (handle is outside editor DOM)
+    const isHandleElement = dom instanceof Element && 
+      (dom.classList.contains('milkdown-block-handle') || 
+       dom.closest('.milkdown-block-handle'))
+    
+    // If mouse is over the handle itself, keep showing the current active block
+    if (isHandleElement && this.#active) {
+      this.#show(this.#active)
+      return
+    }
+    
+    // If elementFromPoint returns null or element is not part of editor DOM, 
+    // try with center X to detect the block
+    if (!(dom instanceof Element) || !view.dom.contains(dom)) {
+      const centerDom = view.root.elementFromPoint(centerX, mouseY)
+      if (!(centerDom instanceof Element) || !view.dom.contains(centerDom)) {
+        // If we have an active block and mouse is in handle area, keep it visible
+        // This prevents handles from disappearing when moving from cells towards handles
+        if (this.#active && mouseX < rect.left && mouseX >= rect.left - handleMargin) {
+          this.#show(this.#active)
+          return
+        }
+        this.#hide()
+        return
+      }
     }
 
     const filterNodes = this.#filterNodes
     if (!filterNodes) return
 
+    // Use center X for posAtCoords to ensure consistent block detection
+    // This ensures handles appear consistently on the left side of blocks
     const result = selectRootNodeByDom(
       view,
-      { x, y: event.clientY },
+      { x: centerX, y: mouseY },
       filterNodes
     )
 
     if (!result) {
+      // If we have an active block and mouse is in handle area, keep it visible
+      // This prevents handles from disappearing when moving from cells towards handles
+      if (this.#active && mouseX < rect.left && mouseX >= rect.left - handleMargin) {
+        this.#show(this.#active)
+        return
+      }
       this.#hide()
       return
     }
