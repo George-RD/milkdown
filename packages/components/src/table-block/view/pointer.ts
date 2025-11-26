@@ -87,8 +87,8 @@ function createPointerMoveHandler(
       if (cell) {
         const cellElement = cell as HTMLElement
         const cellRect = cellElement.getBoundingClientRect()
-        colLeft = Math.min(colLeft, cellRect.left)
-        colRight = Math.max(colRight, cellRect.right)
+          colLeft = Math.min(colLeft, cellRect.left)
+          colRight = Math.max(colRight, cellRect.right)
       }
     }
     
@@ -236,8 +236,8 @@ function createPointerMoveHandler(
       }
 
       // display horizontal line handle
-      const allowInsertion = options.allowHeaderRowInsertion ?? false
-      const canInsertRow = allowInsertion || rowIndex !== 0
+      const allowHeaderRowInsertion = options.allowHeaderRowInsertion ?? false
+      const canInsertRow = allowHeaderRowInsertion || rowIndex !== 0
       if (canInsertRow && (closeToBoundaryTop || closeToBoundaryBottom)) {
         const newLineRowIndex = closeToBoundaryTop ? rowIndex : rowIndex + 1
         // Only update if changed to prevent re-renders
@@ -263,7 +263,7 @@ function createPointerMoveHandler(
       return
     }
 
-    lineHoverIndex.value = [-1, -1]
+      lineHoverIndex.value = [-1, -1]
 
     yHandle.dataset.show = 'false'
     xHandle.dataset.show = 'false'
@@ -279,7 +279,7 @@ function createPointerMoveHandler(
       index,
     })
     
-    hoverIndex.value = index
+      hoverIndex.value = index
   }, 20)
 }
 

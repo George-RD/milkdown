@@ -790,11 +790,17 @@ export const moveGridRowCommand = $command(
       const rowCopy = sourceRow.node.copy(sourceRow.node.content)
 
       // Delete the source row first
-      tr.delete(sourceRow.from, sourceRow.from + sourceRow.node.nodeSize)
+      const deletedSize = sourceRow.node.nodeSize
+      tr.delete(sourceRow.from, sourceRow.from + deletedSize)
 
       // Recalculate positions after deletion
+      // Adjust resolvePos if the deleted row was before it
+      const adjustedPos =
+        sourceRow.from < resolvePos
+          ? resolvePos - deletedSize
+          : resolvePos
       const updatedTable = findParentNodeType(
-        tr.doc.resolve(resolvePos),
+        tr.doc.resolve(adjustedPos),
         gridTableSchema.type(ctx)
       )
       const updatedRows = getTableRows(updatedTable, ctx)
@@ -865,7 +871,7 @@ export const moveGridColCommand = $command(
 
           const cellFrom = rowContentStart + offset
           const cellTo = cellFrom + child.nodeSize
-          const span = child.attrs?.colspan ?? 1
+          const span = child.attrs?.colspan ?? defaultCellAttrs.colspan
 
           // Find source cell
           if (currentColumn === from) {

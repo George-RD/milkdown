@@ -57,10 +57,10 @@ export const GRID_TABLE_SERIALIZE_TRANSFORMS =
  * {@link registerGridTableSerializeTransform} to inspect or replace tables
  * before the markdown serializer runs.
  */
-export const gridTableSerializeTransformsCtx = $ctx<
-  TableSerializeTransform[],
-  typeof GRID_TABLE_SERIALIZE_TRANSFORMS
->([], GRID_TABLE_SERIALIZE_TRANSFORMS)
+export const gridTableSerializeTransformsCtx = $ctx<TableSerializeTransform[]>(
+  [],
+  GRID_TABLE_SERIALIZE_TRANSFORMS
+)
 
 withMeta(gridTableSerializeTransformsCtx, {
   displayName: 'Ctx<gridTableSerializeTransforms>',

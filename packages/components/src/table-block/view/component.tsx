@@ -105,7 +105,8 @@ export const TableBlock = defineComponent<TableBlockProps>({
       onAddCol,
       selectCol,
       selectRow,
-      deleteSelected,
+      deleteRow,
+      deleteCol,
       onAlign,
     } = useOperation(refs, ctx, bridge)
 
@@ -159,7 +160,7 @@ export const TableBlock = defineComponent<TableBlockProps>({
               <button type="button" onPointerdown={onAlign('right')}>
                 <Icon icon={config.renderButton('align_col_right')} />
               </button>
-              <button type="button" onPointerdown={deleteSelected}>
+              <button type="button" onPointerdown={deleteCol}>
                 <Icon icon={config.renderButton('delete_col')} />
               </button>
             </div>
@@ -183,7 +184,7 @@ export const TableBlock = defineComponent<TableBlockProps>({
               class="button-group"
               onPointermove={(e: PointerEvent) => e.stopPropagation()}
             >
-              <button type="button" onPointerdown={deleteSelected}>
+              <button type="button" onPointerdown={deleteRow}>
                 <Icon icon={config.renderButton('delete_row')} />
               </button>
             </div>

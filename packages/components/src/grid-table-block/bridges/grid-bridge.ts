@@ -89,8 +89,11 @@ export function createGridCommandBridge(
     },
 
     deleteSelectedCells() {
-      // For grid tables, we delete the current row
-      // A more sophisticated implementation could detect if row or column is selected
+      // This method is deprecated - use deleteRow() or deleteCol() instead.
+      // For backward compatibility, default to row deletion.
+      // Note: The UI now calls deleteRow() and deleteCol() directly, so this
+      // should rarely be called. If it is, we default to row deletion as a
+      // safe fallback.
       const commands = ctx.get(commandsCtx)
       commands.call(deleteGridRowCommand.key)
     },

@@ -225,7 +225,7 @@ export function computeColHandlePositionByIndex({
   if (!colHandle) {
     return
   }
-
+  
   const dom = getRelatedDOM(contentWrapperRef, index)
   if (!dom) {
     return
@@ -269,7 +269,7 @@ export function computeRowHandlePositionByIndex({
   if (!rowHandle) {
     return
   }
-
+  
   const dom = getRelatedDOM(contentWrapperRef, index)
   if (!dom) {
     return

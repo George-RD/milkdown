@@ -103,12 +103,21 @@ export function useOperation(
         buttonGroup.dataset.show === 'true' ? 'false' : 'true'
   }
 
-  const deleteSelected = (e: PointerEvent) => {
+  const deleteRow = (e: PointerEvent) => {
     if (!bridge || !isEditable()) return
 
     e.preventDefault()
     e.stopPropagation()
-    bridge.deleteSelectedCells()
+    bridge.deleteRow()
+    focusEditor()
+  }
+
+  const deleteCol = (e: PointerEvent) => {
+    if (!bridge || !isEditable()) return
+
+    e.preventDefault()
+    e.stopPropagation()
+    bridge.deleteCol()
     focusEditor()
   }
 
@@ -156,7 +165,8 @@ export function useOperation(
     onAddCol,
     selectCol,
     selectRow,
-    deleteSelected,
+    deleteRow,
+    deleteCol,
     onAlign,
     // Grid-specific
     onVAlign,

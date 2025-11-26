@@ -13,6 +13,11 @@ import {
 } from 'vue'
 
 // @ts-expect-error - h and Fragment are used by JSX with jsx: "preserve", but TypeScript doesn't detect this
+// The following variable is intentionally defined to suppress TypeScript errors when using JSX with `jsx: "preserve"` in tsconfig.
+// TypeScript does not detect usage of `h` and `Fragment` in JSX unless they are explicitly referenced, which can cause type errors.
+// By defining `_jsxRuntime`, we ensure that TypeScript recognizes these imports for JSX transformation, even though the variable is not used directly.
+// See: https://github.com/microsoft/TypeScript/issues/37582 for more details.
+// If you change the JSX runtime or TypeScript configuration, you may be able to remove this workaround.
 const _jsxRuntime = { h, Fragment }
 
 import type { TableCommandBridge } from '../../table-block/types'
@@ -109,7 +114,8 @@ export const GridTableBlock = defineComponent<GridTableBlockProps>({
       onAddCol,
       selectCol,
       selectRow,
-      deleteSelected,
+      deleteRow,
+      deleteCol,
       onAlign,
       onVAlign,
       onMergeCell,
@@ -204,7 +210,7 @@ export const GridTableBlock = defineComponent<GridTableBlockProps>({
                   </button>
                 </>
               )}
-              <button type="button" onPointerdown={deleteSelected}>
+              <button type="button" onPointerdown={deleteCol}>
                 <Icon icon={config.renderButton('delete_col')} />
               </button>
             </div>
@@ -228,7 +234,7 @@ export const GridTableBlock = defineComponent<GridTableBlockProps>({
               class="button-group"
               onPointermove={(e: PointerEvent) => e.stopPropagation()}
             >
-              <button type="button" onPointerdown={deleteSelected}>
+              <button type="button" onPointerdown={deleteRow}>
                 <Icon icon={config.renderButton('delete_row')} />
               </button>
             </div>
