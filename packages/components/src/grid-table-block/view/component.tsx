@@ -12,8 +12,8 @@ import {
   type VNodeRef,
 } from 'vue'
 
-// Workaround: TypeScript doesn't see h/Fragment being used by JSX with jsx: "preserve"
-void h, Fragment
+// @ts-expect-error - h and Fragment are used by JSX with jsx: "preserve", but TypeScript doesn't detect this
+const _jsxRuntime = { h, Fragment }
 
 import type { TableCommandBridge } from '../../table-block/types'
 import type { CellIndex, DragInfo, Refs } from '../../table-block/view/types'

@@ -8,6 +8,7 @@ import type { Refs } from './types'
 import {
   computeColHandlePositionByIndex,
   computeRowHandlePositionByIndex,
+  findCellAtColumn,
   findPointerIndex,
   getRelatedDOM,
 } from './utils'
@@ -27,8 +28,10 @@ function createPointerMoveHandler(
   return throttle((e: PointerEvent) => {
     if (!view?.editable) return
     
-    // Stop propagation to prevent other hover handlers (like grid table plugin) from firing
-    // This prevents conflicting state updates that cause re-renders
+    // Stop propagation to prevent hover handlers from the @milkdown/plugin-gridtables plugin
+    // (and similar table plugins) from firing. This is necessary because those plugins also
+    // listen for pointer events and may update their own hover state, leading to conflicting
+    // state updates and unnecessary re-renders or UI flicker.
     e.stopPropagation()
     
     const {
@@ -79,22 +82,13 @@ function createPointerMoveHandler(
     let colRight = -Infinity
     for (const row of Array.from(rows)) {
       if (!row) continue
-      // Find the cell that occupies this column index
-      // We need to account for colspans, so we iterate and track position
-      let currentCol = 0
-      for (const cell of Array.from(row.children)) {
+      // Find the cell that occupies this column index using shared utility
+      const cell = findCellAtColumn(row, colIndex)
+      if (cell) {
         const cellElement = cell as HTMLElement
-        if (!cellElement) continue
         const cellRect = cellElement.getBoundingClientRect()
-        const colspan = parseInt(cellElement.getAttribute('colspan') || '1', 10)
-        
-        if (currentCol <= colIndex && colIndex < currentCol + colspan) {
-          // This cell spans our column
-          colLeft = Math.min(colLeft, cellRect.left)
-          colRight = Math.max(colRight, cellRect.right)
-          break
-        }
-        currentCol += colspan
+        colLeft = Math.min(colLeft, cellRect.left)
+        colRight = Math.max(colRight, cellRect.right)
       }
     }
     

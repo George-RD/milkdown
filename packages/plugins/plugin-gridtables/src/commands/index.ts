@@ -793,10 +793,11 @@ export const moveGridRowCommand = $command(
       tr.delete(sourceRow.from, sourceRow.from + sourceRow.node.nodeSize)
 
       // Recalculate positions after deletion
-      const updatedRows = getTableRows(
-        findParentNodeType(tr.doc.resolve(resolvePos), gridTableSchema.type(ctx)),
-        ctx
+      const updatedTable = findParentNodeType(
+        tr.doc.resolve(resolvePos),
+        gridTableSchema.type(ctx)
       )
+      const updatedRows = getTableRows(updatedTable, ctx)
 
       // Determine insert position
       let insertPos: number

@@ -15,6 +15,32 @@ function findNodeIndex(parent: Node, child: Node) {
   return -1
 }
 
+/**
+ * Find the cell element at a given logical column index, accounting for colspans.
+ * This is essential for correct handle positioning in tables with merged columns.
+ *
+ * @param row - The table row element to search
+ * @param targetCol - The logical column index (0-based)
+ * @returns The cell element that occupies the target column, or undefined if not found
+ */
+export function findCellAtColumn(
+  row: Element,
+  targetCol: number
+): Element | undefined {
+  let currentCol = 0
+  for (const cell of Array.from(row.children)) {
+    const colspan = parseInt(
+      (cell as HTMLElement).getAttribute('colspan') || '1',
+      10
+    )
+    if (currentCol <= targetCol && targetCol < currentCol + colspan) {
+      return cell
+    }
+    currentCol += colspan
+  }
+  return undefined
+}
+
 export function findPointerIndex(
   event: PointerEvent,
   view?: EditorView
@@ -88,24 +114,6 @@ export function getRelatedDOM(
   if (!firstRow) return
 
   // Find the cell at the logical column index, accounting for colspans
-  const findCellAtColumn = (
-    row: Element,
-    targetCol: number
-  ): Element | undefined => {
-    let currentCol = 0
-    for (const cell of Array.from(row.children)) {
-      const colspan = parseInt(
-        (cell as HTMLElement).getAttribute('colspan') || '1',
-        10
-      )
-      if (currentCol <= targetCol && targetCol < currentCol + colspan) {
-        return cell
-      }
-      currentCol += colspan
-    }
-    return undefined
-  }
-
   const headerCol = findCellAtColumn(firstRow, columnIndex)
   if (!headerCol) return
 
@@ -229,8 +237,11 @@ export function computeColHandlePositionByIndex({
   
   // Ensure handle is visible before computing position (floating-ui needs valid dimensions)
   colHandle.dataset.show = 'true'
-  // Force a reflow to ensure the element is fully laid out before computePosition reads dimensions
-  // Without this, floating-ui may receive invalid dimensions and position handles incorrectly
+  // Force a DOM reflow before computePosition reads dimensions.
+  // This was empirically necessary: without it, floating-ui receives stale/invalid dimensions
+  // (likely because the element was just made visible via dataset.show), resulting in
+  // incorrect handle positioning. Accessing offsetHeight forces the browser to recalculate layout.
+  // See: https://floating-ui.com/docs/computePosition#layout-shifts
   void colHandle.offsetHeight
   
   if (before) before(colHandle)
@@ -270,8 +281,11 @@ export function computeRowHandlePositionByIndex({
   
   // Ensure handle is visible before computing position (floating-ui needs valid dimensions)
   rowHandle.dataset.show = 'true'
-  // Force a reflow to ensure the element is fully laid out before computePosition reads dimensions
-  // Without this, floating-ui may receive invalid dimensions and position handles incorrectly
+  // Force a DOM reflow before computePosition reads dimensions.
+  // This was empirically necessary: without it, floating-ui receives stale/invalid dimensions
+  // (likely because the element was just made visible via dataset.show), resulting in
+  // incorrect handle positioning. Accessing offsetHeight forces the browser to recalculate layout.
+  // See: https://floating-ui.com/docs/computePosition#layout-shifts
   void rowHandle.offsetHeight
   
   if (before) before(rowHandle)
