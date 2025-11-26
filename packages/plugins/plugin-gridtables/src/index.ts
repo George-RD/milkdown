@@ -45,7 +45,8 @@ import {
   gridTablePluginConfig,
   gridTableProseMirrorPlugin,
 } from './prosemirror/plugin'
-import { gridTableEditingPlugin } from './prosemirror/table-editing-compat'
+// gridTableEditingPlugin is exported but not included in default array
+// to avoid conflicts with GFM's tableEditingPlugin
 import {
   gridTableDomTransformsCtx,
   gridTableClipboardInterop,
@@ -161,8 +162,10 @@ export const gridTables = [
   // ProseMirror plugins for enhanced functionality
   gridTableProseMirrorPlugins,
 
-  // prosemirror-tables compatibility for CellSelection and editing
-  gridTableEditingPlugin,
+  // NOTE: gridTableEditingPlugin is NOT included by default because:
+  // - If using GFM preset, tableEditingPlugin is already included
+  // - Including it twice causes "Adding different instances of keyed plugin" error
+  // - Users can add gridTableEditingPlugin explicitly if using gridTables without GFM
 ].flat() as GridTablesPlugin
 
 gridTables.key = gridTablePluginConfig.key
