@@ -22,6 +22,7 @@ export const gridTableSchema = $nodeSchema('gridTable', (_ctx) => ({
   content: 'gridTableHead? gridTableBody gridTableFoot?',
   group: 'block',
   isolating: true,
+  tableRole: 'table' as const, // prosemirror-tables compatibility
   parseDOM: [
     {
       tag: 'table[data-type="grid-table"]',
@@ -85,6 +86,9 @@ const createGridTableSectionSchema = ({
 }: GridTableSectionConfig) => {
   const schema = $nodeSchema(name, (_ctx) => ({
     content: 'gridTableRow+',
+    // Sections act as mini-tables for prosemirror-tables compatibility
+    // This allows CellSelection to work within each section
+    tableRole: 'table' as const,
     parseDOM: [
       {
         tag: htmlTag,
@@ -180,6 +184,7 @@ withMeta(gridTableRowAttr, {
 /// Schema for grid table row node.
 export const gridTableRowSchema = $nodeSchema('gridTableRow', (_ctx) => ({
   content: 'gridTableCell+',
+  tableRole: 'row' as const, // prosemirror-tables compatibility
   parseDOM: [
     {
       tag: 'tr',
@@ -235,9 +240,12 @@ withMeta(gridTableCellAttr, {
 /// Schema for grid table cell node.
 export const gridTableCellSchema = $nodeSchema('gridTableCell', (ctx) => ({
   content: 'block+',
+  tableRole: 'cell' as const, // prosemirror-tables compatibility
+  isolating: true,
   attrs: {
-    colSpan: { default: 1, validate: 'number' },
-    rowSpan: { default: 1, validate: 'number' },
+    colspan: { default: 1, validate: 'number' },
+    rowspan: { default: 1, validate: 'number' },
+    colwidth: { default: null },
     align: { default: null, validate: 'string|null' },
     valign: { default: null, validate: 'string|null' },
   },
@@ -249,16 +257,24 @@ export const gridTableCellSchema = $nodeSchema('gridTableCell', (ctx) => ({
         if (!(dom instanceof HTMLElement)) return false
         if (!dom.closest('table[data-type="grid-table"]')) return false
 
-        const alignAttr = dom.getAttribute('data-align') || dom.getAttribute('align')
+        const alignAttr =
+          dom.getAttribute('data-align') || dom.getAttribute('align')
         const valignAttr =
           dom.getAttribute('data-valign') || dom.getAttribute('valign')
 
         const styleAlign = dom.style.textAlign || null
         const styleVAlign = dom.style.verticalAlign || null
 
+        // Parse colwidth for prosemirror-tables column resizing
+        const colwidthAttr = dom.getAttribute('data-colwidth')
+        const colwidth = colwidthAttr
+          ? colwidthAttr.split(',').map((w) => Number(w))
+          : null
+
         return {
-          colSpan: parseInt(dom.getAttribute('colspan') || '1', 10),
-          rowSpan: parseInt(dom.getAttribute('rowspan') || '1', 10),
+          colspan: parseInt(dom.getAttribute('colspan') || '1', 10),
+          rowspan: parseInt(dom.getAttribute('rowspan') || '1', 10),
+          colwidth,
           align: alignAttr || styleAlign || null,
           valign: valignAttr || styleVAlign || null,
         }
@@ -271,16 +287,24 @@ export const gridTableCellSchema = $nodeSchema('gridTableCell', (ctx) => ({
         if (!(dom instanceof HTMLElement)) return false
         if (!dom.closest('table[data-type="grid-table"]')) return false
 
-        const alignAttr = dom.getAttribute('data-align') || dom.getAttribute('align')
+        const alignAttr =
+          dom.getAttribute('data-align') || dom.getAttribute('align')
         const valignAttr =
           dom.getAttribute('data-valign') || dom.getAttribute('valign')
 
         const styleAlign = dom.style.textAlign || null
         const styleVAlign = dom.style.verticalAlign || null
 
+        // Parse colwidth for prosemirror-tables column resizing
+        const colwidthAttr = dom.getAttribute('data-colwidth')
+        const colwidth = colwidthAttr
+          ? colwidthAttr.split(',').map((w) => Number(w))
+          : null
+
         return {
-          colSpan: parseInt(dom.getAttribute('colspan') || '1', 10),
-          rowSpan: parseInt(dom.getAttribute('rowspan') || '1', 10),
+          colspan: parseInt(dom.getAttribute('colspan') || '1', 10),
+          rowspan: parseInt(dom.getAttribute('rowspan') || '1', 10),
+          colwidth,
           align: alignAttr || styleAlign || null,
           valign: valignAttr || styleVAlign || null,
         }
@@ -288,13 +312,15 @@ export const gridTableCellSchema = $nodeSchema('gridTableCell', (ctx) => ({
     },
   ],
   toDOM: (node) => {
-    const { colSpan, rowSpan, align, valign } = node.attrs
+    const { colspan, rowspan, colwidth, align, valign } = node.attrs
     const attrs: Record<string, string> = {
       ...ctx.get(gridTableCellAttr.key)(node),
     }
 
-    if (colSpan > 1) attrs.colspan = String(colSpan)
-    if (rowSpan > 1) attrs.rowspan = String(rowSpan)
+    if (colspan > 1) attrs.colspan = String(colspan)
+    if (rowspan > 1) attrs.rowspan = String(rowspan)
+    if (colwidth) attrs['data-colwidth'] = colwidth.join(',')
+
     // Build style string robustly, trimming whitespace to prevent malformed CSS
     const styles: string[] = attrs.style
       ? attrs.style
@@ -319,8 +345,11 @@ export const gridTableCellSchema = $nodeSchema('gridTableCell', (ctx) => ({
   parseMarkdown: {
     match: (node) => node.type === 'gtCell',
     runner: (state, node, type) => {
-      const { colSpan = 1, rowSpan = 1, align = null, valign = null } = node
-      state.openNode(type, { colSpan, rowSpan, align, valign })
+      // Support both camelCase (legacy) and lowercase (prosemirror-tables)
+      const colspan = node.colSpan ?? node.colspan ?? 1
+      const rowspan = node.rowSpan ?? node.rowspan ?? 1
+      const { align = null, valign = null } = node
+      state.openNode(type, { colspan, rowspan, align, valign })
       // Grid table cells can contain full markdown content
       if (node.children && node.children.length > 0) {
         state.next(node.children)
@@ -335,10 +364,11 @@ export const gridTableCellSchema = $nodeSchema('gridTableCell', (ctx) => ({
   toMarkdown: {
     match: (node) => node.type.name === 'gridTableCell',
     runner: (state, node) => {
-      const { colSpan, rowSpan, align, valign } = node.attrs
+      const { colspan, rowspan, align, valign } = node.attrs
       state.openNode('gtCell', undefined, {
-        colSpan: colSpan > 1 ? colSpan : undefined,
-        rowSpan: rowSpan > 1 ? rowSpan : undefined,
+        // Output as colSpan/rowSpan for markdown compatibility
+        colSpan: colspan > 1 ? colspan : undefined,
+        rowSpan: rowspan > 1 ? rowspan : undefined,
         align: align || undefined,
         valign: valign || undefined,
       })

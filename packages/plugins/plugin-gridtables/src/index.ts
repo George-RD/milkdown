@@ -45,6 +45,7 @@ import {
   gridTablePluginConfig,
   gridTableProseMirrorPlugin,
 } from './prosemirror/plugin'
+import { gridTableEditingPlugin } from './prosemirror/table-editing-compat'
 import {
   gridTableDomTransformsCtx,
   gridTableClipboardInterop,
@@ -102,6 +103,7 @@ export {
   gridTableProseMirrorPlugins,
   gridTablePluginConfig,
 } from './prosemirror/plugin'
+export { gridTableEditingPlugin } from './prosemirror/table-editing-compat'
 export {
   gridTableDomTransformsCtx,
   gridTableClipboardInterop,
@@ -158,6 +160,9 @@ export const gridTables = [
 
   // ProseMirror plugins for enhanced functionality
   gridTableProseMirrorPlugins,
+
+  // prosemirror-tables compatibility for CellSelection and editing
+  gridTableEditingPlugin,
 ].flat() as GridTablesPlugin
 
 gridTables.key = gridTablePluginConfig.key

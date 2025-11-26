@@ -43,15 +43,15 @@ export function isInGridTable(state: EditorState, ctx: Ctx): boolean {
 }
 
 type GridCellAttrs = {
-  colSpan: number
-  rowSpan: number
+  colspan: number
+  rowspan: number
   align: GridTableAlign
   valign: GridTableVAlign
 }
 
 const defaultCellAttrs: GridCellAttrs = {
-  colSpan: 1,
-  rowSpan: 1,
+  colspan: 1,
+  rowspan: 1,
   align: null,
   valign: null,
 }
@@ -59,8 +59,8 @@ const defaultCellAttrs: GridCellAttrs = {
 const mergeCellAttrs = (
   attrs: Partial<GridCellAttrs> | undefined
 ): GridCellAttrs => ({
-  colSpan: attrs?.colSpan ?? defaultCellAttrs.colSpan,
-  rowSpan: attrs?.rowSpan ?? defaultCellAttrs.rowSpan,
+  colspan: attrs?.colspan ?? defaultCellAttrs.colspan,
+  rowspan: attrs?.rowspan ?? defaultCellAttrs.rowspan,
   align: (attrs?.align ?? defaultCellAttrs.align) as GridTableAlign,
   valign: (attrs?.valign ?? defaultCellAttrs.valign) as GridTableVAlign,
 })
@@ -105,10 +105,10 @@ const createRowFromTemplate = (ctx: Ctx, template: Node): Node => {
 
     cells.push(
       createGridCellNode(ctx, {
-        colSpan: child.attrs?.colSpan ?? defaultCellAttrs.colSpan,
+        colspan: child.attrs?.colspan ?? defaultCellAttrs.colspan,
         align: (child.attrs?.align ?? defaultCellAttrs.align) as GridTableAlign,
         valign: (child.attrs?.valign ?? defaultCellAttrs.valign) as GridTableVAlign,
-        rowSpan: defaultCellAttrs.rowSpan,
+        rowspan: defaultCellAttrs.rowspan,
       })
     )
   })
@@ -185,14 +185,14 @@ const getColumnMetrics = (
 
   const cellType = gridTableCellSchema.type(ctx)
   let index = 0
-  let span = defaultCellAttrs.colSpan
+  let span = defaultCellAttrs.colspan
   let found = false
 
   row.node.forEach((child, offset) => {
     if (found || child.type !== cellType) return
 
     const childPos = row.from + 1 + offset
-    const childSpan = child.attrs?.colSpan ?? defaultCellAttrs.colSpan
+    const childSpan = child.attrs?.colspan ?? defaultCellAttrs.colspan
 
     if (childPos === cell.from) {
       span = childSpan
@@ -222,7 +222,7 @@ const getColumnInsertPos = (
     if (currentColumn >= targetColumn) return
 
     insertPos = rowContentStart + offset + child.nodeSize
-    currentColumn += child.attrs?.colSpan ?? defaultCellAttrs.colSpan
+    currentColumn += child.attrs?.colspan ?? defaultCellAttrs.colspan
   })
 
   return insertPos
@@ -241,7 +241,7 @@ const getCellAtColumn = (
   rowInfo.node.forEach((child, offset) => {
     if (match || child.type !== cellType) return
 
-    const span = child.attrs?.colSpan ?? defaultCellAttrs.colSpan
+    const span = child.attrs?.colspan ?? defaultCellAttrs.colspan
     const cellFrom = rowContentStart + offset
     const cellTo = cellFrom + child.nodeSize
 
@@ -695,7 +695,7 @@ withMeta(deleteGridColumnCommand, {
   group: 'GridTable',
 })
 
-/// Command to merge current cell with cell to the right (increase colSpan)
+/// Command to merge current cell with cell to the right (increase colspan)
 export const mergeGridCellRightCommand = $command(
   'MergeGridCellRight',
   (ctx) => () => (state, dispatch) => {
@@ -724,12 +724,12 @@ export const mergeGridCellRightCommand = $command(
       const nextCell = state.doc.resolve(nextCellPos)
       const nextCellNode = nextCell.parent
 
-      // Merge cells by increasing colSpan and removing the next cell
+      // Merge cells by increasing colspan and removing the next cell
       const tr = state.tr
         .setNodeMarkup(cell.from, undefined, {
           ...cell.node.attrs,
-          colSpan:
-            (cell.node.attrs.colSpan || 1) + (nextCellNode.attrs.colSpan || 1),
+          colspan:
+            (cell.node.attrs.colspan || 1) + (nextCellNode.attrs.colspan || 1),
         })
         .delete(nextCellPos, nextCellPos + nextCellNode.nodeSize)
 
@@ -746,29 +746,29 @@ withMeta(mergeGridCellRightCommand, {
   group: 'GridTable',
 })
 
-/// Command to split current cell (decrease colSpan)
+/// Command to split current cell (decrease colspan)
 export const splitGridCellCommand = $command(
   'SplitGridCell',
   (ctx) => () => (state, dispatch) => {
     const cell = findParentGridTableCell(state, ctx)
     if (!cell) return false
 
-    const { colSpan = 1, rowSpan = 1 } = cell.node.attrs
-    if (colSpan <= 1) return false // Can't split single-column cell
+    const { colspan = 1, rowspan = 1 } = cell.node.attrs
+    if (colspan <= 1) return false // Can't split single-column cell
 
     // Create new cell
     const newCell = createGridCellNode(ctx, {
-      colSpan: 1,
-      rowSpan,
+      colspan: 1,
+      rowspan,
       align: (cell.node.attrs.align ?? defaultCellAttrs.align) as GridTableAlign,
       valign: (cell.node.attrs.valign ?? defaultCellAttrs.valign) as GridTableVAlign,
     })
 
-    // Update current cell colSpan and insert new cell
+    // Update current cell colspan and insert new cell
     const tr = state.tr
       .setNodeMarkup(cell.from, undefined, {
         ...cell.node.attrs,
-        colSpan: colSpan - 1,
+        colspan: colspan - 1,
       })
       .insert(cell.from + cell.node.nodeSize, newCell)
 
@@ -955,7 +955,7 @@ export const moveGridColCommand = $command(
 
           const cellFrom = rowContentStart + offset
           const cellTo = cellFrom + child.nodeSize
-          const span = child.attrs?.colSpan ?? 1
+          const span = child.attrs?.colspan ?? 1
 
           // Find source cell
           if (currentColumn === from) {

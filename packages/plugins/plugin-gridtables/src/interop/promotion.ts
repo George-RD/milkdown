@@ -52,7 +52,7 @@ export function canPromoteToGfm(gridTable: ProseNode): boolean {
       const cell = row.child(i)
 
       // No spans allowed
-      if (cell.attrs.colSpan !== 1 || cell.attrs.rowSpan !== 1) return false
+      if (cell.attrs.colspan !== 1 || cell.attrs.rowspan !== 1) return false
 
       // No vertical alignment
       if (cell.attrs.valign) return false
