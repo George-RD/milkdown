@@ -14,7 +14,7 @@ import { createDragOverHandler } from '../../table-block/dnd/drag-over-handler'
 import {
   computeColHandlePositionByIndex,
   computeRowHandlePositionByIndex,
-} from './utils'
+} from '../../table-block/view/utils'
 
 export function useDragHandlers(
   refs: Refs,

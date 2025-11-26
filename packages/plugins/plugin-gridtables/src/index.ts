@@ -21,35 +21,29 @@
 import type { SliceType } from '@milkdown/ctx'
 import type { $Ctx, $Prose } from '@milkdown/utils'
 
-import { remarkGridTables } from './remark/wrapper'
-import { remarkGridTablesNormalizeInline } from './remark/normalize-inline'
-
-import {
-  gridTableAttr,
-  gridTableBodyAttr,
-  gridTableCellAttr,
-  gridTableCellSchema,
-  gridTableFootAttr,
-  gridTableHeadAttr,
-  gridTableRowAttr,
-  gridTableRowSchema,
-  gridTableSchema,
-} from './schema'
 import { gridTableCommands } from './commands'
-import { gridTableKeymap } from './keymap'
-import {
-  gridTableProseMirrorPlugins,
-  gridTablePluginConfig,
-  gridTableProseMirrorPlugin,
-} from './prosemirror/plugin'
-// gridTableEditingPlugin is exported but not included in default array
-// to avoid conflicts with GFM's tableEditingPlugin
 import {
   gridTableDomTransformsCtx,
   gridTableClipboardInterop,
   gridTableSerializeTransformsCtx,
   gridTableSerializerInterop,
 } from './interop'
+import { gridTableKeymap } from './keymap'
+import {
+  gridTableProseMirrorPlugins,
+  gridTablePluginConfig,
+  gridTableProseMirrorPlugin,
+} from './prosemirror/plugin'
+import { remarkGridTablesNormalizeInline } from './remark/normalize-inline'
+import { remarkGridTables } from './remark/wrapper'
+import {
+  gridTableAttr,
+  gridTableCellAttr,
+  gridTableCellSchema,
+  gridTableRowAttr,
+  gridTableRowSchema,
+  gridTableSchema,
+} from './schema'
 
 /// Export schema types for external use
 export type { GridTableAlign, GridTableVAlign, GridTableSection } from './schema'
@@ -62,10 +56,6 @@ export {
   gridTableRowAttr,
   gridTableRowSchema,
   gridTableSchema,
-  // Legacy attr exports (section nodes removed in flat structure)
-  gridTableHeadAttr,
-  gridTableBodyAttr,
-  gridTableFootAttr,
 }
 
 /// Export all command components

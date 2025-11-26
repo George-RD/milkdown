@@ -20,10 +20,10 @@ import type { CellIndex, DragInfo, Refs } from '../../table-block/view/types'
 import type { GridTableBlockConfig } from '../config'
 
 import { Icon } from '../../__internal__/components/icon'
+import { usePointerHandlers } from '../../table-block/view/pointer'
+import { recoveryStateBetweenUpdate } from '../../table-block/view/utils'
 import { useDragHandlers } from './drag'
 import { useOperation } from './operation'
-import { usePointerHandlers } from './pointer'
-import { recoveryStateBetweenUpdate } from './utils'
 
 type GridTableBlockProps = {
   view: EditorView
@@ -100,7 +100,9 @@ export const GridTableBlock = defineComponent<GridTableBlockProps>({
       dragInfo,
     }
 
-    const { pointerLeave, pointerMove } = usePointerHandlers(refs, view)
+    const { pointerLeave, pointerMove } = usePointerHandlers(refs, view, {
+      allowHeaderRowInsertion: true,
+    })
     const { dragRow, dragCol } = useDragHandlers(refs, ctx, bridge)
     const {
       onAddRow,
@@ -129,8 +131,24 @@ export const GridTableBlock = defineComponent<GridTableBlockProps>({
           onDragstart={(e) => e.preventDefault()}
           onDragover={(e) => e.preventDefault()}
           onDragleave={(e) => e.preventDefault()}
-          onPointermove={pointerMove}
-          onPointerleave={pointerLeave}
+          onPointermove={(e) => {
+            e.stopPropagation() // Prevent grid table plugin hover handlers
+            pointerMove(e)
+          }}
+          onPointerleave={(e) => {
+            e.stopPropagation() // Prevent grid table plugin hover handlers
+            pointerLeave()
+          }}
+          onMouseover={(e) => {
+            // Stop mouseover events from reaching the grid table plugin's handlers
+            // This prevents conflicting state updates that cause re-renders
+            e.stopPropagation()
+          }}
+          onMouseout={(e) => {
+            // Stop mouseout events from reaching the grid table plugin's handlers
+            // This prevents conflicting state updates that cause re-renders
+            e.stopPropagation()
+          }}
         >
           <button
             type="button"
@@ -252,7 +270,7 @@ export const GridTableBlock = defineComponent<GridTableBlockProps>({
                 <Icon icon={config.renderButton('add_col')} />
               </button>
             </div>
-            <div ref={contentWrapperFunctionRef} class="table-content"></div>
+            <table ref={contentWrapperFunctionRef} class="children"></table>
           </div>
         </div>
       )

@@ -122,8 +122,14 @@ export const TableBlock = defineComponent<TableBlockProps>({
           onDragstart={(e) => e.preventDefault()}
           onDragover={(e) => e.preventDefault()}
           onDragleave={(e) => e.preventDefault()}
-          onPointermove={pointerMove}
-          onPointerleave={pointerLeave}
+          onPointermove={(e) => {
+            e.stopPropagation() // Prevent grid table plugin hover handlers
+            pointerMove(e)
+          }}
+          onPointerleave={(e) => {
+            e.stopPropagation() // Prevent grid table plugin hover handlers
+            pointerLeave()
+          }}
         >
           <button
             type="button"

@@ -421,6 +421,9 @@ export const deleteGridRowCommand = $command(
   (ctx) => () => (state, dispatch) => {
     if (!isInGridTable(state, ctx)) return false
 
+    const table = findParentGridTable(state, ctx)
+    if (!table) return false
+
     const currentRow = findParentGridTableRow(state, ctx)
     if (!currentRow) return false
 

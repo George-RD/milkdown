@@ -23,10 +23,6 @@ td {
   position: relative;
 }
 
-.milkdown-table-block .table-content {
-  display: block;
-}
-
 .milkdown-table-block .handle {
   position: absolute;
   z-index: 50;

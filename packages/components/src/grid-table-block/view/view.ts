@@ -37,9 +37,6 @@ export class UnifiedTableNodeView implements NodeView {
   nodeRef: ShallowRef<Node>
   tableType: TableType
 
-  // For GFM tables, we need to keep a reference to the table wrapper
-  private gfmTableWrapper?: HTMLTableElement
-
   constructor(
     public ctx: Ctx,
     public node: Node,
@@ -53,18 +50,7 @@ export class UnifiedTableNodeView implements NodeView {
     // Use consistent class name for unified styling
     dom.className = 'milkdown-table-block'
 
-    // Create contentDOM based on table type
-    let contentDOM: HTMLElement
-    if (tableType === 'grid') {
-      // Grid tables have <thead>/<tbody>/<tfoot> sections, so contentDOM must be the table itself
-      contentDOM = document.createElement('table')
-      contentDOM.setAttribute('data-type', 'grid-table')
-      contentDOM.classList.add('children')
-    } else {
-      // GFM tables use tbody as contentDOM, wrapped in a proper table element
-      contentDOM = document.createElement('tbody')
-    }
-
+    const contentDOM = document.createElement('tbody')
     this.contentDOM = contentDOM
     contentDOM.setAttribute('data-content-dom', 'true')
     contentDOM.classList.add('content-dom')
@@ -84,17 +70,15 @@ export class UnifiedTableNodeView implements NodeView {
       getPos,
       config: ctx.get(gridTableBlockConfig.key),
       onMount: (wrapper: Element) => {
-        if (tableType === 'grid') {
-          // For grid tables, append the table contentDOM directly to the wrapper
-          wrapper.appendChild(contentDOM)
-        } else {
-          // For GFM tables, create a proper table wrapper and append tbody inside it
-          const tableWrapper = document.createElement('table')
-          tableWrapper.classList.add('children')
-          tableWrapper.appendChild(contentDOM)
-          wrapper.appendChild(tableWrapper)
-          this.gfmTableWrapper = tableWrapper
+        if (!(wrapper instanceof HTMLTableElement)) {
+          return
         }
+        if (tableType === 'grid') {
+          wrapper.setAttribute('data-type', 'grid-table')
+        } else {
+          wrapper.removeAttribute('data-type')
+        }
+        wrapper.appendChild(contentDOM)
       },
       node: this.nodeRef,
       bridge,
@@ -166,15 +150,39 @@ export class UnifiedTableNodeView implements NodeView {
   stopEvent(e: Event) {
     if (e.type === 'drop' || e.type.startsWith('drag')) return true
 
+    // Prevent contextmenu (right-click) from triggering handlers that cause re-renders
+    // This allows DevTools to inspect elements without interference
+    if (e.type === 'contextmenu') {
+      // Don't stop the event, but prevent it from triggering other handlers
+      // that might cause DOM mutations
+      return false
+    }
+
+    // Stop mouseover/mouseout events to prevent the grid table plugin's hover handlers
+    // from firing and causing re-renders that interfere with inspection
+    if (e.type === 'mouseover' || e.type === 'mouseout') {
+      const target = e.target
+      if (
+        target instanceof HTMLElement &&
+        (target.closest('th') || target.closest('td'))
+      ) {
+        // Stop these events from reaching the plugin's handlers
+        return true
+      }
+    }
+
     if (e.type === 'mousedown' || e.type === 'pointerdown') {
       if (e.target instanceof Element && e.target.closest('button')) return true
+
+      // Don't handle right-clicks (button 2) - allow them for context menu/inspection
+      const event = e as PointerEvent
+      if (event.button === 2) return false
 
       const target = e.target
       if (
         target instanceof HTMLElement &&
         (target.closest('th') || target.closest('td'))
       ) {
-        const event = e as PointerEvent
         return this.#handleClick(event)
       }
     }
@@ -199,7 +207,6 @@ export class UnifiedTableNodeView implements NodeView {
     this.app.unmount()
     this.dom.remove()
     this.contentDOM.remove()
-    this.gfmTableWrapper?.remove()
   }
 }
 

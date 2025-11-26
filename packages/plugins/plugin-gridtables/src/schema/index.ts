@@ -85,17 +85,17 @@ export const gridTableSchema = $nodeSchema('gridTable', (_ctx) => ({
       // Output sections in order: head, body, foot
       if (headRows.length > 0) {
         state.openNode('gtHeader')
-        headRows.forEach((row) => state.next(row.content))
+        headRows.forEach((row) => state.next(row))
         state.closeNode()
       }
       if (bodyRows.length > 0) {
         state.openNode('gtBody')
-        bodyRows.forEach((row) => state.next(row.content))
+        bodyRows.forEach((row) => state.next(row))
         state.closeNode()
       }
       if (footRows.length > 0) {
         state.openNode('gtFooter')
-        footRows.forEach((row) => state.next(row.content))
+        footRows.forEach((row) => state.next(row))
         state.closeNode()
       }
       state.closeNode()
@@ -335,24 +335,5 @@ withMeta(gridTableCellSchema.node, {
 
 withMeta(gridTableCellSchema.ctx, {
   displayName: 'NodeSchemaCtx<gridTableCell>',
-  group: 'GridTable',
-})
-
-// Legacy exports for compatibility - these are no longer used but exported
-// to avoid breaking imports. They're empty placeholders.
-export const gridTableHeadAttr = $nodeAttr('gridTableHead')
-export const gridTableBodyAttr = $nodeAttr('gridTableBody')
-export const gridTableFootAttr = $nodeAttr('gridTableFoot')
-
-withMeta(gridTableHeadAttr, {
-  displayName: 'Attr<gridTableHead>',
-  group: 'GridTable',
-})
-withMeta(gridTableBodyAttr, {
-  displayName: 'Attr<gridTableBody>',
-  group: 'GridTable',
-})
-withMeta(gridTableFootAttr, {
-  displayName: 'Attr<gridTableFoot>',
   group: 'GridTable',
 })

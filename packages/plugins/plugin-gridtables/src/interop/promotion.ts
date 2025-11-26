@@ -1,5 +1,4 @@
-import type { Node as ProseNode, Schema } from '@milkdown/prose/model'
-import { Fragment } from '@milkdown/prose/model'
+import { Fragment, type Node as ProseNode, type Schema } from '@milkdown/prose/model'
 
 /**
  * Checks if a gridTable node can be represented as a GFM table.
@@ -13,32 +12,23 @@ import { Fragment } from '@milkdown/prose/model'
  * - Each cell contains exactly one paragraph
  */
 export function canPromoteToGfm(gridTable: ProseNode): boolean {
-  // Must have gtHead and gtBody
-  let gtHead: ProseNode | undefined
-  let gtBody: ProseNode | undefined
-  let gtFoot: ProseNode | undefined
+  const headerRows: ProseNode[] = []
+  const bodyRows: ProseNode[] = []
+  const footRows: ProseNode[] = []
 
   gridTable.forEach((child) => {
-    if (child.type.name === 'gridTableHead') gtHead = child
-    else if (child.type.name === 'gridTableBody') gtBody = child
-    else if (child.type.name === 'gridTableFoot') gtFoot = child
+    if (child.type.name !== 'gridTableRow') return
+    const section = (child.attrs.section as string) || 'body'
+    if (section === 'head') headerRows.push(child)
+    else if (section === 'foot') footRows.push(child)
+    else bodyRows.push(child)
   })
 
-  // GFM doesn't support footers
-  if (gtFoot) return false
+  if (headerRows.length !== 1) return false
+  if (bodyRows.length === 0) return false
+  if (footRows.length > 0) return false
 
-  // Must have exactly one header row
-  if (!gtHead || gtHead.childCount !== 1) return false
-  if (!gtBody || gtBody.childCount === 0) return false
-
-  // Store in local const for TypeScript narrowing
-  const head = gtHead
-  const body = gtBody
-
-  // Check all rows for compatibility
-  const allRows: ProseNode[] = []
-  head.forEach((row: ProseNode) => allRows.push(row))
-  body.forEach((row: ProseNode) => allRows.push(row))
+  const allRows = [...headerRows, ...bodyRows]
 
   const firstRowCellCount = allRows[0]?.childCount ?? 0
   if (firstRowCellCount === 0) return false
@@ -82,25 +72,33 @@ export function promoteToGfmTable(
   const tableHeaderType = schema.nodes['table_header']
   const tableCellType = schema.nodes['table_cell']
 
-  if (!tableType || !tableHeaderRowType || !tableRowType || !tableHeaderType || !tableCellType) {
+  if (
+    !tableType ||
+    !tableHeaderRowType ||
+    !tableRowType ||
+    !tableHeaderType ||
+    !tableCellType
+  ) {
     return null
   }
 
-  let gtHead: ProseNode | undefined
-  let gtBody: ProseNode | undefined
+  const headerRows: ProseNode[] = []
+  const bodyRows: ProseNode[] = []
+  const footRows: ProseNode[] = []
 
   gridTable.forEach((child) => {
-    if (child.type.name === 'gridTableHead') gtHead = child
-    else if (child.type.name === 'gridTableBody') gtBody = child
+    if (child.type.name !== 'gridTableRow') return
+    const section = (child.attrs.section as string) || 'body'
+    if (section === 'head') headerRows.push(child)
+    else if (section === 'foot') footRows.push(child)
+    else bodyRows.push(child)
   })
 
-  if (!gtHead || !gtBody) return null
+  if (headerRows.length !== 1) return null
+  if (bodyRows.length === 0) return null
+  if (footRows.length > 0) return null
 
-  // Store in local const for TypeScript narrowing
-  const head = gtHead
-  const body = gtBody
-
-  const headerRow = head.firstChild
+  const headerRow = headerRows[0]
   if (!headerRow) return null
 
   // Convert header row
@@ -117,9 +115,8 @@ export function promoteToGfmTable(
   const gfmHeaderRow = tableHeaderRowType.create(null, Fragment.from(headerCells))
 
   // Convert body rows
-  const bodyRows: ProseNode[] = []
-  for (let rowIdx = 0; rowIdx < body.childCount; rowIdx++) {
-    const gridRow = body.child(rowIdx)
+  const convertedBodyRows: ProseNode[] = []
+  for (const gridRow of bodyRows) {
     const cells: ProseNode[] = []
 
     for (let cellIdx = 0; cellIdx < gridRow.childCount; cellIdx++) {
@@ -132,11 +129,11 @@ export function promoteToGfmTable(
     }
 
     const gfmRow = tableRowType.create(null, Fragment.from(cells))
-    bodyRows.push(gfmRow)
+    convertedBodyRows.push(gfmRow)
   }
 
   // Create GFM table with header row + body rows
-  const tableContent = [gfmHeaderRow, ...bodyRows]
+  const tableContent = [gfmHeaderRow, ...convertedBodyRows]
   const gfmTable = tableType.create(null, Fragment.from(tableContent))
 
   return gfmTable
@@ -170,6 +167,17 @@ export function promoteGridTablesToGfm(doc: ProseNode, schema: Schema): ProseNod
         const promoted = promoteToGfmTable(node, schema)
         if (promoted) return promoted
       }
+      // If cannot be promoted, still need to recursively transform children
+      // to ensure document structure is consistent (even though rows don't
+      // contain gridTables, they might contain other nodes that need transformation)
+      if (node.content.size > 0) {
+        const newContent: ProseNode[] = []
+        node.content.forEach((child) => {
+          newContent.push(transformNode(child))
+        })
+        return node.copy(Fragment.from(newContent))
+      }
+      return node
     }
 
     // If node has content, recursively transform children

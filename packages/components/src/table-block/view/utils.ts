@@ -8,6 +8,18 @@ import { CellSelection, findTable } from '@milkdown/prose/tables'
 
 import type { CellIndex, Refs } from './types'
 
+// Enable pointer debugging - set to true to see logs
+const DEBUG_POINTER = true
+let lastPointerDebug = 0
+
+const debugPointer = (payload: Record<string, unknown>) => {
+  if (!DEBUG_POINTER) return
+  const now = Date.now()
+  if (now - lastPointerDebug < 250) return
+  lastPointerDebug = now
+  console.log('[table-block:pointer]', payload)
+}
+
 function findNodeIndex(parent: Node, child: Node) {
   for (let i = 0; i < parent.childCount; i++) {
     if (parent.child(i) === child) return i
@@ -34,22 +46,61 @@ export function findPointerIndex(
     const node = view.state.doc.nodeAt(pos)
     if (!node) return
 
-    const cellType = ['table_cell', 'table_header']
-    const rowType = ['table_row', 'table_header_row']
+    const debugContext = {
+      nodeType: node.type.name,
+      pos,
+    }
 
-    const cell = cellType.includes(node.type.name)
-      ? node
-      : findParent((node) => cellType.includes(node.type.name))($pos)?.node
-    const row = findParent((node) => rowType.includes(node.type.name))(
-      $pos
-    )?.node
-    const table = findParent((node) => node.type.name === 'table')($pos)?.node
-    if (!cell || !row || !table) return
+    const detectIndex = (
+      cellTypes: string[],
+      rowTypes: string[],
+      tableTypes: string[]
+    ): CellIndex | undefined => {
+      const cell = cellTypes.includes(node.type.name)
+        ? node
+        : findParent((n) => cellTypes.includes(n.type.name))($pos)?.node
+      const row = findParent((n) => rowTypes.includes(n.type.name))($pos)?.node
+      const table = findParent((n) =>
+        tableTypes.includes(n.type.name)
+      )($pos)?.node
 
-    const columnIndex = findNodeIndex(row, cell)
-    const rowIndex = findNodeIndex(table, row)
+      if (!cell || !row || !table) return
+      const columnIndex = findNodeIndex(row, cell)
+      const rowIndex = findNodeIndex(table, row)
+      if (rowIndex === -1) return
+      return [rowIndex, columnIndex]
+    }
 
-    return [rowIndex, columnIndex]
+    const isInsideGridTable = Boolean(
+      findParent((n) => n.type.name === 'gridTable')($pos)
+    )
+
+    const gridIndex = detectIndex(
+      ['gridTableCell'],
+      ['gridTableRow'],
+      ['gridTable']
+    )
+    if (gridIndex) return gridIndex
+
+    if (isInsideGridTable) {
+      debugPointer({
+        ...debugContext,
+        reason: 'grid-detect-miss',
+      })
+    }
+
+    const gfmIndex = detectIndex(
+      ['table_cell', 'table_header'],
+      ['table_row', 'table_header_row'],
+      ['table']
+    )
+    if (gfmIndex) return gfmIndex
+
+    debugPointer({
+      ...debugContext,
+      reason: isInsideGridTable ? 'grid-no-dom' : 'no-table-match',
+    })
+    return undefined
   } catch {
     return undefined
   }
@@ -68,10 +119,30 @@ export function getRelatedDOM(
   const firstRow = rows[0]
   if (!firstRow) return
 
-  const headerCol = firstRow.children[columnIndex]
+  // Find the cell at the logical column index, accounting for colspans
+  const findCellAtColumn = (
+    row: Element,
+    targetCol: number
+  ): Element | undefined => {
+    let currentCol = 0
+    for (let i = 0; i < row.children.length; i++) {
+      const cell = row.children[i]
+      const colspan = parseInt(
+        (cell as HTMLElement).getAttribute('colspan') || '1',
+        10
+      )
+      if (currentCol <= targetCol && targetCol < currentCol + colspan) {
+        return cell
+      }
+      currentCol += colspan
+    }
+    return undefined
+  }
+
+  const headerCol = findCellAtColumn(firstRow, columnIndex)
   if (!headerCol) return
 
-  const col = row.children[columnIndex]
+  const col = findCellAtColumn(row, columnIndex)
   if (!col) return
 
   return {
@@ -95,6 +166,8 @@ export function recoveryStateBetweenUpdate(
   const table = findTable($from)
   if (!table || table.node !== node) return
 
+  const isGridTable = node.type.name === 'gridTable'
+
   if (selection.isColSelection()) {
     const { $head } = selection
     const colIndex = $head.index($head.depth - 1)
@@ -109,24 +182,53 @@ export function recoveryStateBetweenUpdate(
     })
     return
   }
+
   if (selection.isRowSelection()) {
     const { $head } = selection
-    const rowNode = findParent(
-      (node) =>
-        node.type.name === 'table_row' || node.type.name === 'table_header_row'
-    )($head)
-    if (!rowNode) return
-    const rowIndex = findNodeIndex(table.node, rowNode.node)
-    computeRowHandlePositionByIndex({
-      refs,
-      index: [rowIndex, 0],
-      before: (handleDOM) => {
-        if (rowIndex > 0)
-          handleDOM
-            .querySelector('.button-group')
-            ?.setAttribute('data-show', 'true')
-      },
-    })
+
+    if (isGridTable) {
+      const rowNode = findParent((n) => n.type.name === 'gridTableRow')($head)
+      if (!rowNode) return
+      const tableNode = findParent((n) => n.type.name === 'gridTable')($head)
+      if (!tableNode) return
+
+      const rowIndex = findNodeIndex(tableNode.node, rowNode.node)
+      if (rowIndex === -1) return
+
+      computeRowHandlePositionByIndex({
+        refs,
+        index: [rowIndex, 0],
+        before: (handleDOM) => {
+          const section = rowNode.node.attrs.section as
+            | 'head'
+            | 'body'
+            | 'foot'
+            | undefined
+          if (section !== 'head') {
+            handleDOM
+              .querySelector('.button-group')
+              ?.setAttribute('data-show', 'true')
+          }
+        },
+      })
+    } else {
+      const rowNode = findParent(
+        (n) =>
+          n.type.name === 'table_row' || n.type.name === 'table_header_row'
+      )($head)
+      if (!rowNode) return
+      const rowIndex = findNodeIndex(table.node, rowNode.node)
+      computeRowHandlePositionByIndex({
+        refs,
+        index: [rowIndex, 0],
+        before: (handleDOM) => {
+          if (rowIndex > 0)
+            handleDOM
+              .querySelector('.button-group')
+              ?.setAttribute('data-show', 'true')
+        },
+      })
+    }
   }
 }
 
@@ -143,25 +245,77 @@ export function computeColHandlePositionByIndex({
   before,
   after,
 }: ComputeHandlePositionByIndexProps) {
-  const { contentWrapperRef, colHandleRef, hoverIndex } = refs
+  const { contentWrapperRef, colHandleRef } = refs
   const colHandle = colHandleRef.value
-  if (!colHandle) return
+  if (!colHandle) {
+    if (DEBUG_POINTER) {
+      console.log('[table-block:computeColHandle] colHandleRef is null', { index })
+    }
+    return
+  }
+  
+  // Debug: Check for duplicate handles
+  if (DEBUG_POINTER) {
+    const allHandles = document.querySelectorAll('[data-role="col-drag-handle"]')
+    if (allHandles.length > 1) {
+      console.warn('[table-block:computeColHandle] Multiple col handles found!', {
+        count: allHandles.length,
+        index,
+        table: contentWrapperRef.value,
+      })
+    }
+  }
 
-  hoverIndex.value = index
+  // Don't update hoverIndex here - the pointer handler already handles it conditionally
+  // Setting it here would cause unnecessary Vue re-renders
   const dom = getRelatedDOM(contentWrapperRef, index)
-  if (!dom) return
+  if (!dom) {
+    if (DEBUG_POINTER) {
+      console.log('[table-block:computeColHandle] getRelatedDOM returned undefined', {
+        index,
+        rowCount: contentWrapperRef.value?.querySelectorAll('tr').length,
+      })
+    }
+    return
+  }
   const { headerCol: col } = dom
+  if (!col) {
+    if (DEBUG_POINTER) {
+      console.log('[table-block:computeColHandle] headerCol is null', { index })
+    }
+    return
+  }
+  
+  // Ensure handle is visible before computing position (floating-ui needs valid dimensions)
   colHandle.dataset.show = 'true'
+  // Force a reflow to ensure the element is laid out
+  void colHandle.offsetHeight
+  
+  if (DEBUG_POINTER) {
+    console.log('[table-block:computeColHandle] computing position', {
+      index,
+      colRect: col.getBoundingClientRect(),
+      handleRect: colHandle.getBoundingClientRect(),
+      colVisible: col instanceof HTMLElement && col.offsetParent !== null,
+      handleVisible: colHandle.offsetParent !== null,
+    })
+  }
+  
   if (before) before(colHandle)
   computePosition(col, colHandle, { placement: 'top' })
     .then(({ x, y }) => {
+      if (DEBUG_POINTER) {
+        console.log('[table-block:computeColHandle] position computed', { x, y })
+      }
       Object.assign(colHandle.style, {
         left: `${x}px`,
         top: `${y}px`,
       })
       if (after) after(colHandle)
     })
-    .catch(console.error)
+    .catch((error) => {
+      console.error('[table-block:computeColHandle] computePosition failed', error)
+    })
 }
 
 export function computeRowHandlePositionByIndex({
@@ -170,23 +324,75 @@ export function computeRowHandlePositionByIndex({
   before,
   after,
 }: ComputeHandlePositionByIndexProps) {
-  const { contentWrapperRef, rowHandleRef, hoverIndex } = refs
+  const { contentWrapperRef, rowHandleRef } = refs
   const rowHandle = rowHandleRef.value
-  if (!rowHandle) return
+  if (!rowHandle) {
+    if (DEBUG_POINTER) {
+      console.log('[table-block:computeRowHandle] rowHandleRef is null', { index })
+    }
+    return
+  }
+  
+  // Debug: Check for duplicate handles
+  if (DEBUG_POINTER) {
+    const allHandles = document.querySelectorAll('[data-role="row-drag-handle"]')
+    if (allHandles.length > 1) {
+      console.warn('[table-block:computeRowHandle] Multiple row handles found!', {
+        count: allHandles.length,
+        index,
+        table: contentWrapperRef.value,
+      })
+    }
+  }
 
-  hoverIndex.value = index
+  // Don't update hoverIndex here - the pointer handler already handles it conditionally
+  // Setting it here would cause unnecessary Vue re-renders
   const dom = getRelatedDOM(contentWrapperRef, index)
-  if (!dom) return
+  if (!dom) {
+    if (DEBUG_POINTER) {
+      console.log('[table-block:computeRowHandle] getRelatedDOM returned undefined', {
+        index,
+        rowCount: contentWrapperRef.value?.querySelectorAll('tr').length,
+      })
+    }
+    return
+  }
   const { row } = dom
+  if (!row) {
+    if (DEBUG_POINTER) {
+      console.log('[table-block:computeRowHandle] row is null', { index })
+    }
+    return
+  }
+  
+  // Ensure handle is visible before computing position (floating-ui needs valid dimensions)
   rowHandle.dataset.show = 'true'
+  // Force a reflow to ensure the element is laid out
+  void rowHandle.offsetHeight
+  
+  if (DEBUG_POINTER) {
+    console.log('[table-block:computeRowHandle] computing position', {
+      index,
+      rowRect: row.getBoundingClientRect(),
+      handleRect: rowHandle.getBoundingClientRect(),
+      rowVisible: row instanceof HTMLElement && row.offsetParent !== null,
+      handleVisible: rowHandle.offsetParent !== null,
+    })
+  }
+  
   if (before) before(rowHandle)
   computePosition(row, rowHandle, { placement: 'left' })
     .then(({ x, y }) => {
+      if (DEBUG_POINTER) {
+        console.log('[table-block:computeRowHandle] position computed', { x, y })
+      }
       Object.assign(rowHandle.style, {
         left: `${x}px`,
         top: `${y}px`,
       })
       if (after) after(rowHandle)
     })
-    .catch(console.error)
+    .catch((error) => {
+      console.error('[table-block:computeRowHandle] computePosition failed', error)
+    })
 }
