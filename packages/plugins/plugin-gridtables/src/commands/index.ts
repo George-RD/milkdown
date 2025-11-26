@@ -374,10 +374,42 @@ withMeta(exitGridTableCommand, {
 })
 
 /// Navigate to next cell in grid table.
-/// Uses prosemirror-tables' goToNextCell for consistent behavior with GFM tables.
+/// Uses prosemirror-tables' goToNextCell, with fallback to cross section boundaries.
 export const goToNextGridCellCommand = $command(
   'GoToNextGridCell',
-  () => () => goToNextCell(1)
+  (ctx) => () => (state, dispatch) => {
+    // Try prosemirror-tables first (works within sections)
+    if (goToNextCell(1)(state, dispatch)) {
+      return true
+    }
+
+    // Fallback: at section boundary, find next section's first cell
+    const table = findParentGridTable(state, ctx)
+    if (!table) return false
+
+    const cell = findParentGridTableCell(state, ctx)
+    if (!cell) return false
+
+    // Find next cell after current position (crosses sections)
+    let nextCellPos: number | null = null
+    const cellType = gridTableCellSchema.type(ctx)
+
+    state.doc.nodesBetween(table.from, table.from + table.node.nodeSize, (node, pos) => {
+      if (node.type === cellType && pos > cell.from && nextCellPos === null) {
+        nextCellPos = pos + 1
+        return false
+      }
+      return true
+    })
+
+    if (nextCellPos !== null && dispatch) {
+      const tr = state.tr.setSelection(Selection.near(state.doc.resolve(nextCellPos), 1))
+      dispatch(tr)
+      return true
+    }
+
+    return false
+  }
 )
 
 withMeta(goToNextGridCellCommand, {
@@ -386,10 +418,41 @@ withMeta(goToNextGridCellCommand, {
 })
 
 /// Navigate to previous cell in grid table.
-/// Uses prosemirror-tables' goToNextCell for consistent behavior with GFM tables.
+/// Uses prosemirror-tables' goToNextCell, with fallback to cross section boundaries.
 export const goToPrevGridCellCommand = $command(
   'GoToPrevGridCell',
-  () => () => goToNextCell(-1)
+  (ctx) => () => (state, dispatch) => {
+    // Try prosemirror-tables first (works within sections)
+    if (goToNextCell(-1)(state, dispatch)) {
+      return true
+    }
+
+    // Fallback: at section boundary, find previous section's last cell
+    const table = findParentGridTable(state, ctx)
+    if (!table) return false
+
+    const cell = findParentGridTableCell(state, ctx)
+    if (!cell) return false
+
+    // Find last cell before current position (crosses sections)
+    let prevCellPos: number | null = null
+    const cellType = gridTableCellSchema.type(ctx)
+
+    state.doc.nodesBetween(table.from, table.from + table.node.nodeSize, (node, pos) => {
+      if (node.type === cellType && pos < cell.from) {
+        prevCellPos = pos + 1
+      }
+      return true
+    })
+
+    if (prevCellPos !== null && dispatch) {
+      const tr = state.tr.setSelection(Selection.near(state.doc.resolve(prevCellPos), 1))
+      dispatch(tr)
+      return true
+    }
+
+    return false
+  }
 )
 
 withMeta(goToPrevGridCellCommand, {
