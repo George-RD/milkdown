@@ -55,7 +55,7 @@ import {
 } from './interop'
 
 /// Export schema types for external use
-export type { GridTableAlign, GridTableVAlign } from './schema'
+export type { GridTableAlign, GridTableVAlign, GridTableSection } from './schema'
 
 /// Export all schema components
 export {

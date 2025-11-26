@@ -77,12 +77,14 @@ type GridTableSectionConfig = {
   name: 'gridTableHead' | 'gridTableBody' | 'gridTableFoot'
   htmlTag: 'thead' | 'tbody' | 'tfoot'
   markdownType: 'gtHeader' | 'gtBody' | 'gtFooter'
+  sectionAttr: GridTableSection
 }
 
 const createGridTableSectionSchema = ({
   name,
   htmlTag,
   markdownType,
+  sectionAttr,
 }: GridTableSectionConfig) => {
   const schema = $nodeSchema(name, (_ctx) => ({
     content: 'gridTableRow+',
@@ -109,7 +111,14 @@ const createGridTableSectionSchema = ({
       match: (node) => node.type === markdownType,
       runner: (state, node, type) => {
         state.openNode(type)
-        state.next(node.children)
+        // Tag child rows with the correct section attribute
+        const children = (node.children || []).map(
+          (child: { type: string; children?: unknown[] }) => ({
+            ...child,
+            section: sectionAttr,
+          })
+        )
+        state.next(children)
         state.closeNode()
       },
     },
@@ -141,6 +150,7 @@ export const gridTableHeadSchema = createGridTableSectionSchema({
   name: 'gridTableHead',
   htmlTag: 'thead',
   markdownType: 'gtHeader',
+  sectionAttr: 'head',
 })
 
 /// HTML attributes for grid table body node.
@@ -156,6 +166,7 @@ export const gridTableBodySchema = createGridTableSectionSchema({
   name: 'gridTableBody',
   htmlTag: 'tbody',
   markdownType: 'gtBody',
+  sectionAttr: 'body',
 })
 
 /// HTML attributes for grid table foot node.
@@ -171,6 +182,7 @@ export const gridTableFootSchema = createGridTableSectionSchema({
   name: 'gridTableFoot',
   htmlTag: 'tfoot',
   markdownType: 'gtFooter',
+  sectionAttr: 'foot',
 })
 
 /// HTML attributes for grid table row node.
@@ -181,30 +193,55 @@ withMeta(gridTableRowAttr, {
   group: 'GridTable',
 })
 
+/// Section type for grid table rows (for future flat structure)
+export type GridTableSection = 'head' | 'body' | 'foot'
+
 /// Schema for grid table row node.
 export const gridTableRowSchema = $nodeSchema('gridTableRow', (_ctx) => ({
   content: 'gridTableCell+',
   tableRole: 'row' as const, // prosemirror-tables compatibility
+  attrs: {
+    // Section attribute for flat table structure (Phase 1 prep)
+    // Currently rows live inside section nodes, but this attribute
+    // will allow flattening to match GFM's structure
+    section: { default: 'body' as GridTableSection },
+  },
   parseDOM: [
     {
       tag: 'tr',
       priority: 60, // Higher than default to win over GFM
-      getAttrs: (dom) =>
-        dom instanceof HTMLElement &&
-        dom.closest('table[data-type="grid-table"]')
-          ? null
-          : false,
+      getAttrs: (dom) => {
+        if (!(dom instanceof HTMLElement)) return false
+        if (!dom.closest('table[data-type="grid-table"]')) return false
+
+        // Detect section from parent element or data attribute
+        const parent = dom.parentElement
+        let section: GridTableSection = 'body'
+        if (dom.dataset.section) {
+          section = dom.dataset.section as GridTableSection
+        } else if (parent?.tagName === 'THEAD') {
+          section = 'head'
+        } else if (parent?.tagName === 'TFOOT') {
+          section = 'foot'
+        }
+
+        return { section }
+      },
     },
   ],
-  toDOM: () => [
+  toDOM: (node) => [
     'tr',
-    // Row-level attributes handled by node,
+    {
+      'data-section': node.attrs.section,
+    },
     0,
   ],
   parseMarkdown: {
     match: (node) => node.type === 'gtRow',
     runner: (state, node, type) => {
-      state.openNode(type)
+      // Section is set by parent section node's runner, or defaults to 'body'
+      const section = (node.section as GridTableSection) || 'body'
+      state.openNode(type, { section })
       state.next(node.children)
       state.closeNode()
     },
