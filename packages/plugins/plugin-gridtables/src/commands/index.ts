@@ -5,6 +5,7 @@ import type { EditorState, Transaction } from '@milkdown/prose/state'
 import { paragraphSchema } from '@milkdown/preset-commonmark'
 import { findParentNodeType } from '@milkdown/prose'
 import { Selection } from '@milkdown/prose/state'
+import { goToNextCell } from '@milkdown/prose/tables'
 import { $command } from '@milkdown/utils'
 
 import type { GridTableAlign, GridTableVAlign } from '../schema'
@@ -372,45 +373,11 @@ withMeta(exitGridTableCommand, {
   group: 'GridTable',
 })
 
-/// Navigate to next cell in grid table
+/// Navigate to next cell in grid table.
+/// Uses prosemirror-tables' goToNextCell for consistent behavior with GFM tables.
 export const goToNextGridCellCommand = $command(
   'GoToNextGridCell',
-  (ctx) => () => (state, dispatch) => {
-    if (!isInGridTable(state, ctx)) return false
-
-    const { $head: _$head } = state.selection
-    const cell = findParentGridTableCell(state, ctx)
-    if (!cell) return false
-
-    // Find next cell by traversing the document
-    let nextCellPos: number | null = null
-    const table = findParentGridTable(state, ctx)
-    if (!table) return false
-
-    // Simple implementation: find next cell node after current position
-    const { from, to } = table
-    state.doc.nodesBetween(from, to, (node, pos) => {
-      if (
-        node.type === gridTableCellSchema.type(ctx) &&
-        pos > cell.from &&
-        nextCellPos === null
-      ) {
-        nextCellPos = pos + 1 // Position inside the cell
-        return false // Stop traversing
-      }
-      return true // Continue traversing
-    })
-
-    if (nextCellPos !== null) {
-      const tr = state.tr.setSelection(
-        Selection.near(state.tr.doc.resolve(nextCellPos), 1)
-      )
-      dispatch?.(tr)
-      return true
-    }
-
-    return false
-  }
+  () => () => goToNextCell(1)
 )
 
 withMeta(goToNextGridCellCommand, {
@@ -418,37 +385,11 @@ withMeta(goToNextGridCellCommand, {
   group: 'GridTable',
 })
 
-/// Navigate to previous cell in grid table
+/// Navigate to previous cell in grid table.
+/// Uses prosemirror-tables' goToNextCell for consistent behavior with GFM tables.
 export const goToPrevGridCellCommand = $command(
   'GoToPrevGridCell',
-  (ctx) => () => (state, dispatch) => {
-    if (!isInGridTable(state, ctx)) return false
-
-    const cell = findParentGridTableCell(state, ctx)
-    if (!cell) return false
-
-    // Find previous cell by traversing backwards
-    let prevCellPos: number | null = null
-    const table = findParentGridTable(state, ctx)
-    if (!table) return false
-
-    const { from, to } = table
-    state.doc.nodesBetween(from, to, (node, pos) => {
-      if (node.type === gridTableCellSchema.type(ctx) && pos < cell.from) {
-        prevCellPos = pos + 1 // Position inside the cell
-      }
-    })
-
-    if (prevCellPos !== null) {
-      const tr = state.tr.setSelection(
-        Selection.near(state.tr.doc.resolve(prevCellPos), 1)
-      )
-      dispatch?.(tr)
-      return true
-    }
-
-    return false
-  }
+  () => () => goToNextCell(-1)
 )
 
 withMeta(goToPrevGridCellCommand, {
