@@ -27,13 +27,10 @@ import { remarkGridTablesNormalizeInline } from './remark/normalize-inline'
 import {
   gridTableAttr,
   gridTableBodyAttr,
-  gridTableBodySchema,
   gridTableCellAttr,
   gridTableCellSchema,
   gridTableFootAttr,
-  gridTableFootSchema,
   gridTableHeadAttr,
-  gridTableHeadSchema,
   gridTableRowAttr,
   gridTableRowSchema,
   gridTableSchema,
@@ -60,17 +57,15 @@ export type { GridTableAlign, GridTableVAlign, GridTableSection } from './schema
 /// Export all schema components
 export {
   gridTableAttr,
-  gridTableBodyAttr,
-  gridTableBodySchema,
   gridTableCellAttr,
   gridTableCellSchema,
-  gridTableFootAttr,
-  gridTableFootSchema,
-  gridTableHeadAttr,
-  gridTableHeadSchema,
   gridTableRowAttr,
   gridTableRowSchema,
   gridTableSchema,
+  // Legacy attr exports (section nodes removed in flat structure)
+  gridTableHeadAttr,
+  gridTableBodyAttr,
+  gridTableFootAttr,
 }
 
 /// Export all command components
@@ -139,17 +134,11 @@ export const gridTables = [
 
   // HTML attributes
   gridTableAttr,
-  gridTableHeadAttr,
-  gridTableBodyAttr,
-  gridTableFootAttr,
   gridTableRowAttr,
   gridTableCellAttr,
 
-  // Node schemas
+  // Node schemas (flat structure: table -> row -> cell)
   gridTableSchema,
-  gridTableHeadSchema,
-  gridTableBodySchema,
-  gridTableFootSchema,
   gridTableRowSchema,
   gridTableCellSchema,
 

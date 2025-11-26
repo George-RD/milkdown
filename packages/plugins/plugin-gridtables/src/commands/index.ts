@@ -8,14 +8,11 @@ import { Selection } from '@milkdown/prose/state'
 import { goToNextCell } from '@milkdown/prose/tables'
 import { $command } from '@milkdown/utils'
 
-import type { GridTableAlign, GridTableVAlign } from '../schema'
+import type { GridTableAlign, GridTableSection, GridTableVAlign } from '../schema'
 
 import { withMeta } from '../__internal__'
 import {
-  gridTableBodySchema,
   gridTableCellSchema,
-  gridTableFootSchema,
-  gridTableHeadSchema,
   gridTableRowSchema,
   gridTableSchema,
 } from '../schema'
@@ -90,16 +87,22 @@ const createGridCellNode = (
   )
 }
 
-const createRowWithColumnCount = (ctx: Ctx, columnCount: number): Node => {
+const createRowWithColumnCount = (
+  ctx: Ctx,
+  columnCount: number,
+  section: GridTableSection = 'body'
+): Node => {
   const cells = Array.from({ length: columnCount }, () =>
     createGridCellNode(ctx)
   )
-  return gridTableRowSchema.type(ctx).create(null, cells)
+  return gridTableRowSchema.type(ctx).create({ section }, cells)
 }
 
 const createRowFromTemplate = (ctx: Ctx, template: Node): Node => {
   const cellType = gridTableCellSchema.type(ctx)
   const cells: Node[] = []
+  // Preserve section from template row
+  const section = (template.attrs?.section as GridTableSection) || 'body'
 
   template.forEach((child) => {
     if (child.type !== cellType) return
@@ -118,7 +121,7 @@ const createRowFromTemplate = (ctx: Ctx, template: Node): Node => {
     cells.push(createGridCellNode(ctx))
   }
 
-  return gridTableRowSchema.type(ctx).create(null, cells)
+  return gridTableRowSchema.type(ctx).create({ section }, cells)
 }
 
 type NodeWithFrom = {
@@ -126,51 +129,23 @@ type NodeWithFrom = {
   from: number
 }
 
-const getTableSections = (
-  table: ReturnType<typeof findParentGridTable>,
-  ctx: Ctx
-): NodeWithFrom[] => {
-  const sections: NodeWithFrom[] = []
-  if (!table) return sections
-
-  const sectionTypes = new Set([
-    gridTableHeadSchema.type(ctx),
-    gridTableBodySchema.type(ctx),
-    gridTableFootSchema.type(ctx),
-  ])
-
-  const tableStart = table.from + 1
-
-  table.node.forEach((child, offset) => {
-    if (!sectionTypes.has(child.type)) return
-
-    sections.push({
-      node: child,
-      from: tableStart + offset,
-    })
-  })
-
-  return sections
-}
-
+/// Get all rows directly from a flat table structure
 const getTableRows = (
   table: ReturnType<typeof findParentGridTable>,
   ctx: Ctx
 ): NodeWithFrom[] => {
   const rows: NodeWithFrom[] = []
-  const sections = getTableSections(table, ctx)
+  if (!table) return rows
+
   const rowType = gridTableRowSchema.type(ctx)
+  const tableStart = table.from + 1
 
-  sections.forEach(({ node: sectionNode, from: sectionFrom }) => {
-    const sectionStart = sectionFrom + 1
+  table.node.forEach((child, offset) => {
+    if (child.type !== rowType) return
 
-    sectionNode.forEach((rowNode, offset) => {
-      if (rowNode.type !== rowType) return
-
-      rows.push({
-        node: rowNode,
-        from: sectionStart + offset,
-      })
+    rows.push({
+      node: child,
+      from: tableStart + offset,
     })
   })
 
@@ -274,7 +249,7 @@ const updateGridCellNodeAttrs = (
     return true
   }
 
-/// Create a grid table with specified dimensions
+/// Create a grid table with specified dimensions (flat structure)
 export function createGridTable(
   ctx: Ctx,
   rowsCount = 3,
@@ -282,31 +257,25 @@ export function createGridTable(
   hasHeader = true,
   hasFooter = false
 ): Node {
-  // Create cells for the table
-  const createRow = (cellCount: number) => createRowWithColumnCount(ctx, cellCount)
+  const rows: Node[] = []
 
-  const children: Node[] = []
-
-  // Add header if requested
+  // Add header row if requested
   if (hasHeader) {
-    const headerRows = [createRow(colsCount)]
-    children.push(gridTableHeadSchema.type(ctx).create(null, headerRows))
+    rows.push(createRowWithColumnCount(ctx, colsCount, 'head'))
   }
 
-  // Add body rows (subtract 1 if header exists)
-  const bodyRowCount = hasHeader ? rowsCount - 1 : rowsCount
-  const bodyRows = Array(Math.max(1, bodyRowCount))
-    .fill(0)
-    .map(() => createRow(colsCount))
-  children.push(gridTableBodySchema.type(ctx).create(null, bodyRows))
+  // Add body rows
+  const bodyRowCount = hasHeader ? Math.max(1, rowsCount - 1) : rowsCount
+  for (let i = 0; i < bodyRowCount; i++) {
+    rows.push(createRowWithColumnCount(ctx, colsCount, 'body'))
+  }
 
-  // Add footer if requested
+  // Add footer row if requested
   if (hasFooter) {
-    const footerRows = [createRow(colsCount)]
-    children.push(gridTableFootSchema.type(ctx).create(null, footerRows))
+    rows.push(createRowWithColumnCount(ctx, colsCount, 'foot'))
   }
 
-  return gridTableSchema.type(ctx).create(null, children)
+  return gridTableSchema.type(ctx).create(null, rows)
 }
 
 /// Command to insert a grid table
@@ -374,42 +343,10 @@ withMeta(exitGridTableCommand, {
 })
 
 /// Navigate to next cell in grid table.
-/// Uses prosemirror-tables' goToNextCell, with fallback to cross section boundaries.
+/// With flat structure, prosemirror-tables handles the entire table.
 export const goToNextGridCellCommand = $command(
   'GoToNextGridCell',
-  (ctx) => () => (state, dispatch) => {
-    // Try prosemirror-tables first (works within sections)
-    if (goToNextCell(1)(state, dispatch)) {
-      return true
-    }
-
-    // Fallback: at section boundary, find next section's first cell
-    const table = findParentGridTable(state, ctx)
-    if (!table) return false
-
-    const cell = findParentGridTableCell(state, ctx)
-    if (!cell) return false
-
-    // Find next cell after current position (crosses sections)
-    let nextCellPos: number | null = null
-    const cellType = gridTableCellSchema.type(ctx)
-
-    state.doc.nodesBetween(table.from, table.from + table.node.nodeSize, (node, pos) => {
-      if (node.type === cellType && pos > cell.from && nextCellPos === null) {
-        nextCellPos = pos + 1
-        return false
-      }
-      return true
-    })
-
-    if (nextCellPos !== null && dispatch) {
-      const tr = state.tr.setSelection(Selection.near(state.doc.resolve(nextCellPos), 1))
-      dispatch(tr)
-      return true
-    }
-
-    return false
-  }
+  () => () => goToNextCell(1)
 )
 
 withMeta(goToNextGridCellCommand, {
@@ -418,41 +355,10 @@ withMeta(goToNextGridCellCommand, {
 })
 
 /// Navigate to previous cell in grid table.
-/// Uses prosemirror-tables' goToNextCell, with fallback to cross section boundaries.
+/// With flat structure, prosemirror-tables handles the entire table.
 export const goToPrevGridCellCommand = $command(
   'GoToPrevGridCell',
-  (ctx) => () => (state, dispatch) => {
-    // Try prosemirror-tables first (works within sections)
-    if (goToNextCell(-1)(state, dispatch)) {
-      return true
-    }
-
-    // Fallback: at section boundary, find previous section's last cell
-    const table = findParentGridTable(state, ctx)
-    if (!table) return false
-
-    const cell = findParentGridTableCell(state, ctx)
-    if (!cell) return false
-
-    // Find last cell before current position (crosses sections)
-    let prevCellPos: number | null = null
-    const cellType = gridTableCellSchema.type(ctx)
-
-    state.doc.nodesBetween(table.from, table.from + table.node.nodeSize, (node, pos) => {
-      if (node.type === cellType && pos < cell.from) {
-        prevCellPos = pos + 1
-      }
-      return true
-    })
-
-    if (prevCellPos !== null && dispatch) {
-      const tr = state.tr.setSelection(Selection.near(state.doc.resolve(prevCellPos), 1))
-      dispatch(tr)
-      return true
-    }
-
-    return false
-  }
+  () => () => goToNextCell(-1)
 )
 
 withMeta(goToPrevGridCellCommand, {
@@ -518,18 +424,14 @@ export const deleteGridRowCommand = $command(
     const currentRow = findParentGridTableRow(state, ctx)
     if (!currentRow) return false
 
-    // Check if this is the only row in the section
-    const { $head } = state.selection
-    const headSection = findParentNodeType($head, gridTableHeadSchema.type(ctx))
-    const bodySection = findParentNodeType($head, gridTableBodySchema.type(ctx))
-    const footSection = findParentNodeType($head, gridTableFootSchema.type(ctx))
+    // Get all rows in the table
+    const rows = getTableRows(table, ctx)
+    const rowSection = currentRow.node.attrs.section as GridTableSection
 
-    const section = headSection || bodySection || footSection
-    if (!section) return false
-
-    // Don't delete if it's the only row in body section
-    if (bodySection && section.node.childCount === 1) {
-      return false
+    // Don't delete if it's the only body row
+    if (rowSection === 'body') {
+      const bodyRows = rows.filter((r) => r.node.attrs.section === 'body')
+      if (bodyRows.length <= 1) return false
     }
 
     // Delete the row

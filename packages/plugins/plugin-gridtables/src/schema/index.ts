@@ -1,5 +1,4 @@
 import type { NodeType } from '@milkdown/prose/model'
-// import type { MarkdownNode } from '@milkdown/transformer'
 
 import { $nodeAttr, $nodeSchema } from '@milkdown/utils'
 
@@ -8,6 +7,9 @@ import { withMeta } from '../__internal__'
 // Grid table alignment types
 export type GridTableAlign = 'left' | 'right' | 'center' | 'justify' | null
 export type GridTableVAlign = 'top' | 'bottom' | 'middle' | null
+
+/// Section type for grid table rows
+export type GridTableSection = 'head' | 'body' | 'foot'
 
 /// HTML attributes for grid table node.
 export const gridTableAttr = $nodeAttr('gridTable')
@@ -18,22 +20,23 @@ withMeta(gridTableAttr, {
 })
 
 /// Schema for grid table node.
+/// Flat structure: table contains rows directly (like GFM tables).
+/// Section info is stored in row attributes, not wrapper nodes.
 export const gridTableSchema = $nodeSchema('gridTable', (_ctx) => ({
-  content: 'gridTableHead? gridTableBody gridTableFoot?',
+  content: 'gridTableRow+',
   group: 'block',
   isolating: true,
-  tableRole: 'table' as const, // prosemirror-tables compatibility
+  tableRole: 'table' as const,
   parseDOM: [
     {
       tag: 'table[data-type="grid-table"]',
-      priority: 60, // Higher than default (50) to win over GFM table parser
+      priority: 60,
     },
   ],
   toDOM: () => [
     'table',
     {
       'data-type': 'grid-table',
-      // Table-level attributes handled by node
     },
     0,
   ],
@@ -41,7 +44,25 @@ export const gridTableSchema = $nodeSchema('gridTable', (_ctx) => ({
     match: (node) => node.type === 'gridTable',
     runner: (state, node, type) => {
       state.openNode(type)
-      state.next(node.children)
+      // Flatten sections: markdown has gridTable -> section -> row -> cell
+      // We want: gridTable -> row (with section attr) -> cell
+      const children = (node.children || []) as Array<{
+        type: string
+        children?: Array<{ [key: string]: unknown }>
+      }>
+      for (const section of children) {
+        const sectionType = section.type
+        let sectionAttr: GridTableSection = 'body'
+        if (sectionType === 'gtHeader') sectionAttr = 'head'
+        else if (sectionType === 'gtFooter') sectionAttr = 'foot'
+
+        // Tag each row with its section
+        const rows = (section.children || []).map((row) => ({
+          ...row,
+          section: sectionAttr,
+        }))
+        state.next(rows as unknown as typeof node.children)
+      }
       state.closeNode()
     },
   },
@@ -49,7 +70,34 @@ export const gridTableSchema = $nodeSchema('gridTable', (_ctx) => ({
     match: (node) => node.type.name === 'gridTable',
     runner: (state, node) => {
       state.openNode('gridTable')
-      state.next(node.content)
+      // Group rows by section for markdown output
+      const headRows: typeof node[] = []
+      const bodyRows: typeof node[] = []
+      const footRows: typeof node[] = []
+
+      node.content.forEach((row) => {
+        const section = (row.attrs.section as GridTableSection) || 'body'
+        if (section === 'head') headRows.push(row)
+        else if (section === 'foot') footRows.push(row)
+        else bodyRows.push(row)
+      })
+
+      // Output sections in order: head, body, foot
+      if (headRows.length > 0) {
+        state.openNode('gtHeader')
+        headRows.forEach((row) => state.next(row.content))
+        state.closeNode()
+      }
+      if (bodyRows.length > 0) {
+        state.openNode('gtBody')
+        bodyRows.forEach((row) => state.next(row.content))
+        state.closeNode()
+      }
+      if (footRows.length > 0) {
+        state.openNode('gtFooter')
+        footRows.forEach((row) => state.next(row.content))
+        state.closeNode()
+      }
       state.closeNode()
     },
   },
@@ -65,126 +113,6 @@ withMeta(gridTableSchema.ctx, {
   group: 'GridTable',
 })
 
-/// HTML attributes for grid table head node.
-export const gridTableHeadAttr = $nodeAttr('gridTableHead')
-
-withMeta(gridTableHeadAttr, {
-  displayName: 'Attr<gridTableHead>',
-  group: 'GridTable',
-})
-
-type GridTableSectionConfig = {
-  name: 'gridTableHead' | 'gridTableBody' | 'gridTableFoot'
-  htmlTag: 'thead' | 'tbody' | 'tfoot'
-  markdownType: 'gtHeader' | 'gtBody' | 'gtFooter'
-  sectionAttr: GridTableSection
-}
-
-const createGridTableSectionSchema = ({
-  name,
-  htmlTag,
-  markdownType,
-  sectionAttr,
-}: GridTableSectionConfig) => {
-  const schema = $nodeSchema(name, (_ctx) => ({
-    content: 'gridTableRow+',
-    // Sections act as mini-tables for prosemirror-tables compatibility
-    // This allows CellSelection to work within each section
-    tableRole: 'table' as const,
-    parseDOM: [
-      {
-        tag: htmlTag,
-        priority: 60, // Higher than default to win over GFM
-        getAttrs: (dom) =>
-          dom instanceof HTMLElement &&
-          dom.closest('table[data-type="grid-table"]')
-            ? null
-            : false,
-      },
-    ],
-    toDOM: () => [
-      htmlTag,
-      // Section-level attributes handled by node,
-      0,
-    ],
-    parseMarkdown: {
-      match: (node) => node.type === markdownType,
-      runner: (state, node, type) => {
-        state.openNode(type)
-        // Tag child rows with the correct section attribute
-        const children = (node.children || []).map(
-          (child: { type: string; children?: unknown[] }) => ({
-            ...child,
-            section: sectionAttr,
-          })
-        )
-        state.next(children)
-        state.closeNode()
-      },
-    },
-    toMarkdown: {
-      match: (node) => node.type.name === name,
-      runner: (state, node) => {
-        state.openNode(markdownType)
-        state.next(node.content)
-        state.closeNode()
-      },
-    },
-  }))
-
-  withMeta(schema.node, {
-    displayName: `NodeSchema<${name}>`,
-    group: 'GridTable',
-  })
-
-  withMeta(schema.ctx, {
-    displayName: `NodeSchemaCtx<${name}>`,
-    group: 'GridTable',
-  })
-
-  return schema
-}
-
-/// Schema for grid table head node.
-export const gridTableHeadSchema = createGridTableSectionSchema({
-  name: 'gridTableHead',
-  htmlTag: 'thead',
-  markdownType: 'gtHeader',
-  sectionAttr: 'head',
-})
-
-/// HTML attributes for grid table body node.
-export const gridTableBodyAttr = $nodeAttr('gridTableBody')
-
-withMeta(gridTableBodyAttr, {
-  displayName: 'Attr<gridTableBody>',
-  group: 'GridTable',
-})
-
-/// Schema for grid table body node.
-export const gridTableBodySchema = createGridTableSectionSchema({
-  name: 'gridTableBody',
-  htmlTag: 'tbody',
-  markdownType: 'gtBody',
-  sectionAttr: 'body',
-})
-
-/// HTML attributes for grid table foot node.
-export const gridTableFootAttr = $nodeAttr('gridTableFoot')
-
-withMeta(gridTableFootAttr, {
-  displayName: 'Attr<gridTableFoot>',
-  group: 'GridTable',
-})
-
-/// Schema for grid table foot node.
-export const gridTableFootSchema = createGridTableSectionSchema({
-  name: 'gridTableFoot',
-  htmlTag: 'tfoot',
-  markdownType: 'gtFooter',
-  sectionAttr: 'foot',
-})
-
 /// HTML attributes for grid table row node.
 export const gridTableRowAttr = $nodeAttr('gridTableRow')
 
@@ -193,36 +121,29 @@ withMeta(gridTableRowAttr, {
   group: 'GridTable',
 })
 
-/// Section type for grid table rows (for future flat structure)
-export type GridTableSection = 'head' | 'body' | 'foot'
-
 /// Schema for grid table row node.
 export const gridTableRowSchema = $nodeSchema('gridTableRow', (_ctx) => ({
   content: 'gridTableCell+',
-  tableRole: 'row' as const, // prosemirror-tables compatibility
+  tableRole: 'row' as const,
   attrs: {
-    // Section attribute for flat table structure (Phase 1 prep)
-    // Currently rows live inside section nodes, but this attribute
-    // will allow flattening to match GFM's structure
     section: { default: 'body' as GridTableSection },
   },
   parseDOM: [
     {
       tag: 'tr',
-      priority: 60, // Higher than default to win over GFM
+      priority: 60,
       getAttrs: (dom) => {
         if (!(dom instanceof HTMLElement)) return false
         if (!dom.closest('table[data-type="grid-table"]')) return false
 
-        // Detect section from parent element or data attribute
-        const parent = dom.parentElement
+        // Detect section from data attribute or parent element
         let section: GridTableSection = 'body'
         if (dom.dataset.section) {
           section = dom.dataset.section as GridTableSection
-        } else if (parent?.tagName === 'THEAD') {
-          section = 'head'
-        } else if (parent?.tagName === 'TFOOT') {
-          section = 'foot'
+        } else {
+          const parent = dom.parentElement
+          if (parent?.tagName === 'THEAD') section = 'head'
+          else if (parent?.tagName === 'TFOOT') section = 'foot'
         }
 
         return { section }
@@ -239,7 +160,6 @@ export const gridTableRowSchema = $nodeSchema('gridTableRow', (_ctx) => ({
   parseMarkdown: {
     match: (node) => node.type === 'gtRow',
     runner: (state, node, type) => {
-      // Section is set by parent section node's runner, or defaults to 'body'
       const section = (node.section as GridTableSection) || 'body'
       state.openNode(type, { section })
       state.next(node.children)
@@ -277,7 +197,7 @@ withMeta(gridTableCellAttr, {
 /// Schema for grid table cell node.
 export const gridTableCellSchema = $nodeSchema('gridTableCell', (ctx) => ({
   content: 'block+',
-  tableRole: 'cell' as const, // prosemirror-tables compatibility
+  tableRole: 'cell' as const,
   isolating: true,
   attrs: {
     colspan: { default: 1, validate: 'number' },
@@ -289,7 +209,7 @@ export const gridTableCellSchema = $nodeSchema('gridTableCell', (ctx) => ({
   parseDOM: [
     {
       tag: 'td',
-      priority: 60, // Higher than default to win over GFM
+      priority: 60,
       getAttrs: (dom) => {
         if (!(dom instanceof HTMLElement)) return false
         if (!dom.closest('table[data-type="grid-table"]')) return false
@@ -302,7 +222,6 @@ export const gridTableCellSchema = $nodeSchema('gridTableCell', (ctx) => ({
         const styleAlign = dom.style.textAlign || null
         const styleVAlign = dom.style.verticalAlign || null
 
-        // Parse colwidth for prosemirror-tables column resizing
         const colwidthAttr = dom.getAttribute('data-colwidth')
         const colwidth = colwidthAttr
           ? colwidthAttr.split(',').map((w) => Number(w))
@@ -319,7 +238,7 @@ export const gridTableCellSchema = $nodeSchema('gridTableCell', (ctx) => ({
     },
     {
       tag: 'th',
-      priority: 60, // Higher than default to win over GFM
+      priority: 60,
       getAttrs: (dom) => {
         if (!(dom instanceof HTMLElement)) return false
         if (!dom.closest('table[data-type="grid-table"]')) return false
@@ -332,7 +251,6 @@ export const gridTableCellSchema = $nodeSchema('gridTableCell', (ctx) => ({
         const styleAlign = dom.style.textAlign || null
         const styleVAlign = dom.style.verticalAlign || null
 
-        // Parse colwidth for prosemirror-tables column resizing
         const colwidthAttr = dom.getAttribute('data-colwidth')
         const colwidth = colwidthAttr
           ? colwidthAttr.split(',').map((w) => Number(w))
@@ -358,7 +276,6 @@ export const gridTableCellSchema = $nodeSchema('gridTableCell', (ctx) => ({
     if (rowspan > 1) attrs.rowspan = String(rowspan)
     if (colwidth) attrs['data-colwidth'] = colwidth.join(',')
 
-    // Build style string robustly, trimming whitespace to prevent malformed CSS
     const styles: string[] = attrs.style
       ? attrs.style
           .split(';')
@@ -382,16 +299,13 @@ export const gridTableCellSchema = $nodeSchema('gridTableCell', (ctx) => ({
   parseMarkdown: {
     match: (node) => node.type === 'gtCell',
     runner: (state, node, type) => {
-      // Support both camelCase (legacy) and lowercase (prosemirror-tables)
       const colspan = node.colSpan ?? node.colspan ?? 1
       const rowspan = node.rowSpan ?? node.rowspan ?? 1
       const { align = null, valign = null } = node
       state.openNode(type, { colspan, rowspan, align, valign })
-      // Grid table cells can contain full markdown content
       if (node.children && node.children.length > 0) {
         state.next(node.children)
       } else {
-        // Create empty paragraph if no content
         state.openNode(state.schema.nodes.paragraph as NodeType)
         state.closeNode()
       }
@@ -403,7 +317,6 @@ export const gridTableCellSchema = $nodeSchema('gridTableCell', (ctx) => ({
     runner: (state, node) => {
       const { colspan, rowspan, align, valign } = node.attrs
       state.openNode('gtCell', undefined, {
-        // Output as colSpan/rowSpan for markdown compatibility
         colSpan: colspan > 1 ? colspan : undefined,
         rowSpan: rowspan > 1 ? rowspan : undefined,
         align: align || undefined,
@@ -422,5 +335,24 @@ withMeta(gridTableCellSchema.node, {
 
 withMeta(gridTableCellSchema.ctx, {
   displayName: 'NodeSchemaCtx<gridTableCell>',
+  group: 'GridTable',
+})
+
+// Legacy exports for compatibility - these are no longer used but exported
+// to avoid breaking imports. They're empty placeholders.
+export const gridTableHeadAttr = $nodeAttr('gridTableHead')
+export const gridTableBodyAttr = $nodeAttr('gridTableBody')
+export const gridTableFootAttr = $nodeAttr('gridTableFoot')
+
+withMeta(gridTableHeadAttr, {
+  displayName: 'Attr<gridTableHead>',
+  group: 'GridTable',
+})
+withMeta(gridTableBodyAttr, {
+  displayName: 'Attr<gridTableBody>',
+  group: 'GridTable',
+})
+withMeta(gridTableFootAttr, {
+  displayName: 'Attr<gridTableFoot>',
   group: 'GridTable',
 })
