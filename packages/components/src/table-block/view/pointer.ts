@@ -12,9 +12,6 @@ import {
   getRelatedDOM,
 } from './utils'
 
-// Enable pointer debugging - set to true to see logs
-const DEBUG_POINTER = true
-
 export interface PointerOptions {
   allowHeaderRowInsertion?: boolean
 }
@@ -58,28 +55,13 @@ function createPointerMoveHandler(
     // If detection fails, use last known index to maintain state (prevents flicker)
     if (!index && hoverIndex.value) {
       index = hoverIndex.value
-      if (DEBUG_POINTER) {
-        console.log('[table-block:pointer-move] using last known index', { index })
-      }
     }
     if (!index) {
-      if (DEBUG_POINTER) {
-        console.log('[table-block:pointer-move] findPointerIndex returned undefined, no fallback', {
-          clientX: e.clientX,
-          clientY: e.clientY,
-        })
-      }
       return
     }
 
     const dom = getRelatedDOM(contentWrapperRef, index)
     if (!dom) {
-      if (DEBUG_POINTER) {
-        console.log('[table-block:pointer-move] getRelatedDOM returned undefined', {
-          index,
-          rowCount: contentWrapperRef.value?.querySelectorAll('tr').length,
-        })
-      }
       return
     }
 
@@ -95,17 +77,16 @@ function createPointerMoveHandler(
     // of cells in this column across all rows (accounts for colspans)
     let colLeft = Infinity
     let colRight = -Infinity
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i]
+    for (const row of Array.from(rows)) {
       if (!row) continue
       // Find the cell that occupies this column index
       // We need to account for colspans, so we iterate and track position
       let currentCol = 0
-      for (let j = 0; j < row.children.length; j++) {
-        const cell = row.children[j] as HTMLElement
-        if (!cell) continue
-        const cellRect = cell.getBoundingClientRect()
-        const colspan = parseInt(cell.getAttribute('colspan') || '1', 10)
+      for (const cell of Array.from(row.children)) {
+        const cellElement = cell as HTMLElement
+        if (!cellElement) continue
+        const cellRect = cellElement.getBoundingClientRect()
+        const colspan = parseInt(cellElement.getAttribute('colspan') || '1', 10)
         
         if (currentCol <= colIndex && colIndex < currentCol + colspan) {
           // This cell spans our column
@@ -228,15 +209,6 @@ function createPointerMoveHandler(
     if (colButtonGroup) colButtonGroup.dataset.show = 'false'
 
     if (closeToBoundary) {
-      if (DEBUG_POINTER) {
-        console.log('[table-block:pointer-move] close to boundary', {
-          index,
-          closeToBoundaryLeft,
-          closeToBoundaryRight,
-          closeToBoundaryTop,
-          closeToBoundaryBottom,
-        })
-      }
       const contentBoundary = content.getBoundingClientRect()
       rowHandle.dataset.show = 'false'
       colHandle.dataset.show = 'false'
@@ -297,36 +269,12 @@ function createPointerMoveHandler(
       return
     }
 
-    // Only update refs if they've changed to prevent unnecessary re-renders
-    const currentHoverIndex = hoverIndex.value
-    const currentLineHoverIndex = lineHoverIndex.value
-    
-    // Check if we need to update (avoid triggering Vue reactivity unnecessarily)
-    const shouldUpdateHoverIndex = 
-      !currentHoverIndex || 
-      currentHoverIndex[0] !== index[0] || 
-      currentHoverIndex[1] !== index[1]
-    
-    const shouldUpdateLineHoverIndex = 
-      currentLineHoverIndex[0] !== -1 || 
-      currentLineHoverIndex[1] !== -1
-
-    if (shouldUpdateLineHoverIndex) {
-      lineHoverIndex.value = [-1, -1]
-    }
+    lineHoverIndex.value = [-1, -1]
 
     yHandle.dataset.show = 'false'
     xHandle.dataset.show = 'false'
     rowHandle.dataset.show = 'true'
     colHandle.dataset.show = 'true'
-
-    if (DEBUG_POINTER) {
-      console.log('[table-block:pointer-move] showing cell handles', { 
-        index,
-        shouldUpdateHoverIndex,
-        currentHoverIndex,
-      })
-    }
 
     computeRowHandlePositionByIndex({
       refs,
@@ -337,10 +285,7 @@ function createPointerMoveHandler(
       index,
     })
     
-    // Only update if changed to prevent re-renders
-    if (shouldUpdateHoverIndex) {
-      hoverIndex.value = index
-    }
+    hoverIndex.value = index
   }, 20)
 }
 

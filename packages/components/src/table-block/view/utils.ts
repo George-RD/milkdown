@@ -8,18 +8,6 @@ import { CellSelection, findTable } from '@milkdown/prose/tables'
 
 import type { CellIndex, Refs } from './types'
 
-// Enable pointer debugging - set to true to see logs
-const DEBUG_POINTER = true
-let lastPointerDebug = 0
-
-const debugPointer = (payload: Record<string, unknown>) => {
-  if (!DEBUG_POINTER) return
-  const now = Date.now()
-  if (now - lastPointerDebug < 250) return
-  lastPointerDebug = now
-  console.log('[table-block:pointer]', payload)
-}
-
 function findNodeIndex(parent: Node, child: Node) {
   for (let i = 0; i < parent.childCount; i++) {
     if (parent.child(i) === child) return i
@@ -46,11 +34,6 @@ export function findPointerIndex(
     const node = view.state.doc.nodeAt(pos)
     if (!node) return
 
-    const debugContext = {
-      nodeType: node.type.name,
-      pos,
-    }
-
     const detectIndex = (
       cellTypes: string[],
       rowTypes: string[],
@@ -71,23 +54,12 @@ export function findPointerIndex(
       return [rowIndex, columnIndex]
     }
 
-    const isInsideGridTable = Boolean(
-      findParent((n) => n.type.name === 'gridTable')($pos)
-    )
-
     const gridIndex = detectIndex(
       ['gridTableCell'],
       ['gridTableRow'],
       ['gridTable']
     )
     if (gridIndex) return gridIndex
-
-    if (isInsideGridTable) {
-      debugPointer({
-        ...debugContext,
-        reason: 'grid-detect-miss',
-      })
-    }
 
     const gfmIndex = detectIndex(
       ['table_cell', 'table_header'],
@@ -96,10 +68,6 @@ export function findPointerIndex(
     )
     if (gfmIndex) return gfmIndex
 
-    debugPointer({
-      ...debugContext,
-      reason: isInsideGridTable ? 'grid-no-dom' : 'no-table-match',
-    })
     return undefined
   } catch {
     return undefined
@@ -125,8 +93,7 @@ export function getRelatedDOM(
     targetCol: number
   ): Element | undefined => {
     let currentCol = 0
-    for (let i = 0; i < row.children.length; i++) {
-      const cell = row.children[i]
+    for (const cell of Array.from(row.children)) {
       const colspan = parseInt(
         (cell as HTMLElement).getAttribute('colspan') || '1',
         10
@@ -248,65 +215,27 @@ export function computeColHandlePositionByIndex({
   const { contentWrapperRef, colHandleRef } = refs
   const colHandle = colHandleRef.value
   if (!colHandle) {
-    if (DEBUG_POINTER) {
-      console.log('[table-block:computeColHandle] colHandleRef is null', { index })
-    }
     return
   }
-  
-  // Debug: Check for duplicate handles
-  if (DEBUG_POINTER) {
-    const allHandles = document.querySelectorAll('[data-role="col-drag-handle"]')
-    if (allHandles.length > 1) {
-      console.warn('[table-block:computeColHandle] Multiple col handles found!', {
-        count: allHandles.length,
-        index,
-        table: contentWrapperRef.value,
-      })
-    }
-  }
 
-  // Don't update hoverIndex here - the pointer handler already handles it conditionally
-  // Setting it here would cause unnecessary Vue re-renders
   const dom = getRelatedDOM(contentWrapperRef, index)
   if (!dom) {
-    if (DEBUG_POINTER) {
-      console.log('[table-block:computeColHandle] getRelatedDOM returned undefined', {
-        index,
-        rowCount: contentWrapperRef.value?.querySelectorAll('tr').length,
-      })
-    }
     return
   }
   const { headerCol: col } = dom
   if (!col) {
-    if (DEBUG_POINTER) {
-      console.log('[table-block:computeColHandle] headerCol is null', { index })
-    }
     return
   }
   
   // Ensure handle is visible before computing position (floating-ui needs valid dimensions)
   colHandle.dataset.show = 'true'
-  // Force a reflow to ensure the element is laid out
+  // Force a reflow to ensure the element is fully laid out before computePosition reads dimensions
+  // Without this, floating-ui may receive invalid dimensions and position handles incorrectly
   void colHandle.offsetHeight
-  
-  if (DEBUG_POINTER) {
-    console.log('[table-block:computeColHandle] computing position', {
-      index,
-      colRect: col.getBoundingClientRect(),
-      handleRect: colHandle.getBoundingClientRect(),
-      colVisible: col instanceof HTMLElement && col.offsetParent !== null,
-      handleVisible: colHandle.offsetParent !== null,
-    })
-  }
   
   if (before) before(colHandle)
   computePosition(col, colHandle, { placement: 'top' })
     .then(({ x, y }) => {
-      if (DEBUG_POINTER) {
-        console.log('[table-block:computeColHandle] position computed', { x, y })
-      }
       Object.assign(colHandle.style, {
         left: `${x}px`,
         top: `${y}px`,
@@ -327,65 +256,27 @@ export function computeRowHandlePositionByIndex({
   const { contentWrapperRef, rowHandleRef } = refs
   const rowHandle = rowHandleRef.value
   if (!rowHandle) {
-    if (DEBUG_POINTER) {
-      console.log('[table-block:computeRowHandle] rowHandleRef is null', { index })
-    }
     return
   }
-  
-  // Debug: Check for duplicate handles
-  if (DEBUG_POINTER) {
-    const allHandles = document.querySelectorAll('[data-role="row-drag-handle"]')
-    if (allHandles.length > 1) {
-      console.warn('[table-block:computeRowHandle] Multiple row handles found!', {
-        count: allHandles.length,
-        index,
-        table: contentWrapperRef.value,
-      })
-    }
-  }
 
-  // Don't update hoverIndex here - the pointer handler already handles it conditionally
-  // Setting it here would cause unnecessary Vue re-renders
   const dom = getRelatedDOM(contentWrapperRef, index)
   if (!dom) {
-    if (DEBUG_POINTER) {
-      console.log('[table-block:computeRowHandle] getRelatedDOM returned undefined', {
-        index,
-        rowCount: contentWrapperRef.value?.querySelectorAll('tr').length,
-      })
-    }
     return
   }
   const { row } = dom
   if (!row) {
-    if (DEBUG_POINTER) {
-      console.log('[table-block:computeRowHandle] row is null', { index })
-    }
     return
   }
   
   // Ensure handle is visible before computing position (floating-ui needs valid dimensions)
   rowHandle.dataset.show = 'true'
-  // Force a reflow to ensure the element is laid out
+  // Force a reflow to ensure the element is fully laid out before computePosition reads dimensions
+  // Without this, floating-ui may receive invalid dimensions and position handles incorrectly
   void rowHandle.offsetHeight
-  
-  if (DEBUG_POINTER) {
-    console.log('[table-block:computeRowHandle] computing position', {
-      index,
-      rowRect: row.getBoundingClientRect(),
-      handleRect: rowHandle.getBoundingClientRect(),
-      rowVisible: row instanceof HTMLElement && row.offsetParent !== null,
-      handleVisible: rowHandle.offsetParent !== null,
-    })
-  }
   
   if (before) before(rowHandle)
   computePosition(row, rowHandle, { placement: 'left' })
     .then(({ x, y }) => {
-      if (DEBUG_POINTER) {
-        console.log('[table-block:computeRowHandle] position computed', { x, y })
-      }
       Object.assign(rowHandle.style, {
         left: `${x}px`,
         top: `${y}px`,
