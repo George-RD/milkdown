@@ -1,21 +1,22 @@
+import type { Ctx } from '@milkdown/ctx'
 import type { Node } from '@milkdown/prose/model'
 import type { EditorState, Transaction } from '@milkdown/prose/state'
-import type { Ctx } from '@milkdown/ctx'
 
-import { Selection } from '@milkdown/prose/state'
-import { findParentNodeType } from '@milkdown/prose'
-import { $command } from '@milkdown/utils'
 import { paragraphSchema } from '@milkdown/preset-commonmark'
+import { findParentNodeType } from '@milkdown/prose'
+import { Selection } from '@milkdown/prose/state'
+import { $command } from '@milkdown/utils'
+
+import type { GridTableAlign, GridTableVAlign } from '../schema'
 
 import { withMeta } from '../__internal__'
-import type { GridTableAlign, GridTableVAlign } from '../schema'
 import {
-  gridTableSchema,
-  gridTableHeadSchema,
   gridTableBodySchema,
-  gridTableFootSchema,
-  gridTableRowSchema,
   gridTableCellSchema,
+  gridTableFootSchema,
+  gridTableHeadSchema,
+  gridTableRowSchema,
+  gridTableSchema,
 } from '../schema'
 
 /// Utility function to find parent grid table node
@@ -781,6 +782,247 @@ withMeta(splitGridCellCommand, {
   group: 'GridTable',
 })
 
+/// Command to select a row by index
+export const selectGridRowCommand = $command(
+  'SelectGridRow',
+  (ctx) =>
+    (payload: { index: number; pos?: number } = { index: 0 }) =>
+    (state, dispatch) => {
+      const pos = payload.pos ?? state.selection.from
+      const $pos = state.doc.resolve(pos)
+      const table = findParentNodeType($pos, gridTableSchema.type(ctx))
+      if (!table) return false
+
+      const rows = getTableRows(table, ctx)
+      const targetRow = rows[payload.index]
+      if (!targetRow) return false
+
+      // Select the first cell in the row
+      const cellType = gridTableCellSchema.type(ctx)
+      let firstCellPos: number | null = null
+
+      targetRow.node.forEach((child, offset) => {
+        if (firstCellPos === null && child.type === cellType) {
+          firstCellPos = targetRow.from + 1 + offset + 1
+        }
+      })
+
+      if (firstCellPos !== null) {
+        const sel = Selection.near(state.doc.resolve(firstCellPos), 1)
+        dispatch?.(state.tr.setSelection(sel))
+        return true
+      }
+
+      return false
+    }
+)
+
+withMeta(selectGridRowCommand, {
+  displayName: 'Command<selectGridRowCommand>',
+  group: 'GridTable',
+})
+
+/// Command to select a column by index
+export const selectGridColCommand = $command(
+  'SelectGridCol',
+  (ctx) =>
+    (payload: { index: number; pos?: number } = { index: 0 }) =>
+    (state, dispatch) => {
+      const pos = payload.pos ?? state.selection.from
+      const $pos = state.doc.resolve(pos)
+      const table = findParentNodeType($pos, gridTableSchema.type(ctx))
+      if (!table) return false
+
+      const rows = getTableRows(table, ctx)
+      if (!rows.length) return false
+
+      // Find the cell at the given column index in the first row
+      const firstRow = rows[0]
+      if (!firstRow) return false
+
+      const cellMatch = getCellAtColumn(ctx, firstRow, payload.index)
+      if (!cellMatch) return false
+
+      // Select inside the cell
+      const sel = Selection.near(state.doc.resolve(cellMatch.from + 1), 1)
+      dispatch?.(state.tr.setSelection(sel))
+      return true
+    }
+)
+
+withMeta(selectGridColCommand, {
+  displayName: 'Command<selectGridColCommand>',
+  group: 'GridTable',
+})
+
+/// Command to move a row from one position to another
+export const moveGridRowCommand = $command(
+  'MoveGridRow',
+  (ctx) =>
+    (payload: { from: number; to: number; pos?: number } = { from: 0, to: 0 }) =>
+    (state, dispatch) => {
+      const { from, to, pos } = payload
+      const resolvePos = pos ?? state.selection.from
+      const $pos = state.doc.resolve(resolvePos)
+      const table = findParentNodeType($pos, gridTableSchema.type(ctx))
+      if (!table) return false
+
+      const rows = getTableRows(table, ctx)
+      if (from < 0 || from >= rows.length || to < 0 || to >= rows.length)
+        return false
+      if (from === to) return false
+
+      const sourceRow = rows[from]
+      if (!sourceRow) return false
+
+      const tr = state.tr
+
+      // Clone the row node
+      const rowCopy = sourceRow.node.copy(sourceRow.node.content)
+
+      // Delete the source row first
+      tr.delete(sourceRow.from, sourceRow.from + sourceRow.node.nodeSize)
+
+      // Recalculate positions after deletion
+      const updatedRows = getTableRows(
+        findParentNodeType(tr.doc.resolve(resolvePos), gridTableSchema.type(ctx)),
+        ctx
+      )
+
+      // Determine insert position
+      let insertPos: number
+      if (to >= updatedRows.length) {
+        // Insert at the end
+        const lastRow = updatedRows[updatedRows.length - 1]
+        insertPos = lastRow
+          ? lastRow.from + lastRow.node.nodeSize
+          : table.from + 1
+      } else {
+        insertPos = updatedRows[to]?.from ?? table.from + 1
+      }
+
+      tr.insert(insertPos, rowCopy)
+
+      dispatch?.(tr)
+      return true
+    }
+)
+
+withMeta(moveGridRowCommand, {
+  displayName: 'Command<moveGridRowCommand>',
+  group: 'GridTable',
+})
+
+/// Command to move a column from one position to another
+export const moveGridColCommand = $command(
+  'MoveGridCol',
+  (ctx) =>
+    (payload: { from: number; to: number; pos?: number } = { from: 0, to: 0 }) =>
+    (state, dispatch) => {
+      const { from, to, pos } = payload
+      const resolvePos = pos ?? state.selection.from
+      const $pos = state.doc.resolve(resolvePos)
+      const table = findParentNodeType($pos, gridTableSchema.type(ctx))
+      if (!table) return false
+
+      if (from === to) return false
+
+      const rows = getTableRows(table, ctx)
+      if (!rows.length) return false
+
+      const tr = state.tr
+      const cellType = gridTableCellSchema.type(ctx)
+
+      // For each row, move the cell from 'from' column to 'to' column
+      // Process rows in reverse order to maintain position validity
+      const operations: Array<{
+        deleteFrom: number
+        deleteTo: number
+        insertPos: number
+        cell: Node
+      }> = []
+
+      for (const rowInfo of rows) {
+        const rowContentStart = rowInfo.from + 1
+        let currentColumn = 0
+        let sourceCellFrom = -1
+        let sourceCellTo = -1
+        let sourceCellNode: Node | null = null
+        let targetInsertPos: number | null = null
+
+        rowInfo.node.forEach((child, offset) => {
+          if (child.type !== cellType) return
+
+          const cellFrom = rowContentStart + offset
+          const cellTo = cellFrom + child.nodeSize
+          const span = child.attrs?.colSpan ?? 1
+
+          // Find source cell
+          if (currentColumn === from) {
+            sourceCellFrom = cellFrom
+            sourceCellTo = cellTo
+            sourceCellNode = child
+          }
+
+          // Find target insert position
+          if (currentColumn === to) {
+            targetInsertPos = from < to ? cellTo : cellFrom
+          }
+
+          currentColumn += span
+        })
+
+        // Handle edge case: inserting at the end
+        if (targetInsertPos === null && to >= currentColumn) {
+          targetInsertPos = rowInfo.from + rowInfo.node.nodeSize
+        }
+
+        if (sourceCellNode && targetInsertPos !== null) {
+          operations.push({
+            deleteFrom: sourceCellFrom,
+            deleteTo: sourceCellTo,
+            insertPos: targetInsertPos,
+            cell: sourceCellNode,
+          })
+        }
+      }
+
+      // Apply operations in reverse order (by position) to maintain validity
+      operations.sort((a, b) => {
+        // Process deletes and inserts carefully
+        return b.deleteFrom - a.deleteFrom
+      })
+
+      for (const op of operations) {
+        // If moving right, delete first then insert
+        // If moving left, insert first then delete
+        if (from < to) {
+          tr.delete(op.deleteFrom, op.deleteTo)
+          // Adjust insert position after delete
+          const adjustedInsertPos =
+            op.insertPos > op.deleteTo
+              ? op.insertPos - (op.deleteTo - op.deleteFrom)
+              : op.insertPos
+          tr.insert(adjustedInsertPos, op.cell)
+        } else {
+          tr.insert(op.insertPos, op.cell)
+          // Adjust delete position after insert
+          const adjustedDeleteFrom = op.deleteFrom + op.cell.nodeSize
+          const adjustedDeleteTo = op.deleteTo + op.cell.nodeSize
+          tr.delete(adjustedDeleteFrom, adjustedDeleteTo)
+        }
+      }
+
+      dispatch?.(tr)
+      return true
+    }
+)
+
+withMeta(moveGridColCommand, {
+  displayName: 'Command<moveGridColCommand>',
+  group: 'GridTable',
+})
+
 /// All grid table commands
 export const gridTableCommands = [
   insertGridTableCommand,
@@ -797,4 +1039,8 @@ export const gridTableCommands = [
   setGridCellVAlignCommand,
   mergeGridCellRightCommand,
   splitGridCellCommand,
+  selectGridRowCommand,
+  selectGridColCommand,
+  moveGridRowCommand,
+  moveGridColCommand,
 ].flat()

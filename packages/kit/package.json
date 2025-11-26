@@ -58,7 +58,8 @@
     "./component/image-inline": "./src/component/image-inline.ts",
     "./component/link-tooltip": "./src/component/link-tooltip.ts",
     "./component/list-item-block": "./src/component/list-item-block.ts",
-    "./component/table-block": "./src/component/table-block.ts"
+    "./component/table-block": "./src/component/table-block.ts",
+    "./component/grid-table-block": "./src/component/grid-table-block.ts"
   },
   "main": "./src/index.ts",
   "publishConfig": {
@@ -223,6 +224,10 @@
       "./component/table-block": {
         "types": "./lib/component/table-block.d.ts",
         "import": "./lib/component/table-block.js"
+      },
+      "./component/grid-table-block": {
+        "types": "./lib/component/grid-table-block.d.ts",
+        "import": "./lib/component/grid-table-block.js"
       }
     },
     "typesVersions": {
@@ -343,6 +348,9 @@
         ],
         "component/table-block": [
           "lib/component/table-block.d.ts"
+        ],
+        "component/grid-table-block": [
+          "lib/component/grid-table-block.d.ts"
         ]
       }
     }

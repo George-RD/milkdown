@@ -87,6 +87,10 @@ export {
   setGridCellVAlignCommand,
   mergeGridCellRightCommand,
   splitGridCellCommand,
+  selectGridRowCommand,
+  selectGridColCommand,
+  moveGridRowCommand,
+  moveGridColCommand,
   isInGridTable,
   createGridTable,
 } from './commands'

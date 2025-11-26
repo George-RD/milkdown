@@ -1,14 +1,14 @@
 import type { Ctx, MilkdownPlugin } from '@milkdown/ctx'
 import type { Node as ProseNode, Schema } from '@milkdown/prose/model'
 import type { Serializer } from '@milkdown/transformer'
+
+import { serializerCtx, SerializerReady } from '@milkdown/core'
 import {
   clipboardDomTransformsCtx,
   registerClipboardDomTransform,
   resetClipboardDomTransforms,
   type ClipboardDomTransform,
 } from '@milkdown/plugin-clipboard'
-
-import { serializerCtx, SerializerReady } from '@milkdown/core'
 import { $ctx } from '@milkdown/utils'
 
 import { withMeta } from '../__internal__'
@@ -57,10 +57,10 @@ export const GRID_TABLE_SERIALIZE_TRANSFORMS =
  * {@link registerGridTableSerializeTransform} to inspect or replace tables
  * before the markdown serializer runs.
  */
-export const gridTableSerializeTransformsCtx = $ctx<TableSerializeTransform[]>(
-  [],
-  GRID_TABLE_SERIALIZE_TRANSFORMS
-)
+export const gridTableSerializeTransformsCtx = $ctx<
+  TableSerializeTransform[],
+  typeof GRID_TABLE_SERIALIZE_TRANSFORMS
+>([], GRID_TABLE_SERIALIZE_TRANSFORMS)
 
 withMeta(gridTableSerializeTransformsCtx, {
   displayName: 'Ctx<gridTableSerializeTransforms>',
@@ -147,7 +147,7 @@ const elementContainsAsciiGrid = (element: Element | null): boolean => {
   if (!element) return false
   if (isAsciiParagraph(element)) return true
 
-  const descendants = element.querySelectorAll('p, pre')
+  const descendants = Array.from(element.querySelectorAll('p, pre'))
   for (const candidate of descendants) {
     if (isAsciiParagraph(candidate)) return true
   }
@@ -196,7 +196,7 @@ const hasAsciiGridContext = (table: HTMLElement): boolean => {
 const requiresGridTableHandling = (table: HTMLElement): boolean => {
   if (table.getAttribute('data-type') === 'grid-table') return true
 
-  const cells = table.querySelectorAll('th, td')
+  const cells = Array.from(table.querySelectorAll('th, td'))
   for (const cell of cells) {
     if (!(cell instanceof HTMLElement)) continue
 

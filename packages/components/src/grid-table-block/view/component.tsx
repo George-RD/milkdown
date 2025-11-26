@@ -4,16 +4,20 @@ import type { EditorView } from '@milkdown/prose/view'
 
 import {
   defineComponent,
-  ref,
-  type VNodeRef,
+  Fragment,
   h,
   onMounted,
+  ref,
   type Ref,
+  type VNodeRef,
 } from 'vue'
 
-import type { TableBlockConfig } from '../config'
-import type { TableCommandBridge } from '../types'
-import type { CellIndex, DragInfo, Refs } from './types'
+// Workaround: TypeScript doesn't see h/Fragment being used by JSX with jsx: "preserve"
+void h, Fragment
+
+import type { TableCommandBridge } from '../../table-block/types'
+import type { CellIndex, DragInfo, Refs } from '../../table-block/view/types'
+import type { GridTableBlockConfig } from '../config'
 
 import { Icon } from '../../__internal__/components/icon'
 import { useDragHandlers } from './drag'
@@ -21,19 +25,17 @@ import { useOperation } from './operation'
 import { usePointerHandlers } from './pointer'
 import { recoveryStateBetweenUpdate } from './utils'
 
-type TableBlockProps = {
+type GridTableBlockProps = {
   view: EditorView
   ctx: Ctx
   getPos: () => number | undefined
-  config: TableBlockConfig
+  config: GridTableBlockConfig
   onMount: (div: Element) => void
   node: Ref<Node>
   bridge: TableCommandBridge
 }
 
-h
-
-export const TableBlock = defineComponent<TableBlockProps>({
+export const GridTableBlock = defineComponent<GridTableBlockProps>({
   props: {
     view: {
       type: Object,
@@ -107,16 +109,21 @@ export const TableBlock = defineComponent<TableBlockProps>({
       selectRow,
       deleteSelected,
       onAlign,
+      onVAlign,
+      onMergeCell,
+      onSplitCell,
     } = useOperation(refs, ctx, bridge)
 
     onMounted(() => {
       requestAnimationFrame(() => {
-        // This is a wordaround to keep the popover open when click the select col/row button
         if (view.editable) recoveryStateBetweenUpdate(refs, view, node.value)
       })
     })
 
     return () => {
+      const showVAlign = config.showVAlignControls && bridge.setVAlign
+      const showMerge = config.showMergeControls && bridge.mergeCellRight
+
       return (
         <div
           onDragstart={(e) => e.preventDefault()}
@@ -144,6 +151,7 @@ export const TableBlock = defineComponent<TableBlockProps>({
               class="button-group"
               onPointermove={(e: PointerEvent) => e.stopPropagation()}
             >
+              {/* Horizontal alignment */}
               <button type="button" onPointerdown={onAlign('left')}>
                 <Icon icon={config.renderButton('align_col_left')} />
               </button>
@@ -153,6 +161,31 @@ export const TableBlock = defineComponent<TableBlockProps>({
               <button type="button" onPointerdown={onAlign('right')}>
                 <Icon icon={config.renderButton('align_col_right')} />
               </button>
+              {/* Vertical alignment (grid-specific) */}
+              {showVAlign && (
+                <>
+                  <button type="button" onPointerdown={onVAlign('top')}>
+                    <Icon icon={config.renderButton('align_col_top')} />
+                  </button>
+                  <button type="button" onPointerdown={onVAlign('middle')}>
+                    <Icon icon={config.renderButton('align_col_middle')} />
+                  </button>
+                  <button type="button" onPointerdown={onVAlign('bottom')}>
+                    <Icon icon={config.renderButton('align_col_bottom')} />
+                  </button>
+                </>
+              )}
+              {/* Merge/Split (grid-specific) */}
+              {showMerge && (
+                <>
+                  <button type="button" onPointerdown={onMergeCell}>
+                    <Icon icon={config.renderButton('merge_cell')} />
+                  </button>
+                  <button type="button" onPointerdown={onSplitCell}>
+                    <Icon icon={config.renderButton('split_cell')} />
+                  </button>
+                </>
+              )}
               <button type="button" onPointerdown={deleteSelected}>
                 <Icon icon={config.renderButton('delete_col')} />
               </button>
@@ -219,10 +252,11 @@ export const TableBlock = defineComponent<TableBlockProps>({
                 <Icon icon={config.renderButton('add_col')} />
               </button>
             </div>
-            <table ref={contentWrapperFunctionRef} class="children"></table>
+            <div ref={contentWrapperFunctionRef} class="table-content"></div>
           </div>
         </div>
       )
     }
   },
 })
+

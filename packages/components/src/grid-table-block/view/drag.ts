@@ -3,14 +3,14 @@ import type { Ctx } from '@milkdown/ctx'
 import { editorViewCtx } from '@milkdown/core'
 import { onMounted, onUnmounted } from 'vue'
 
-import type { TableCommandBridge } from '../types'
-import type { CellIndex, Refs } from './types'
+import type { TableCommandBridge } from '../../table-block/types'
+import type { CellIndex, Refs } from '../../table-block/view/types'
 
 import {
   createDragColHandler,
   createDragRowHandler,
-} from '../dnd/create-drag-handler'
-import { createDragOverHandler } from '../dnd/drag-over-handler'
+} from '../../table-block/dnd/create-drag-handler'
+import { createDragOverHandler } from '../../table-block/dnd/drag-over-handler'
 import {
   computeColHandlePositionByIndex,
   computeRowHandlePositionByIndex,
@@ -104,3 +104,4 @@ export function useDragHandlers(
     dragCol,
   }
 }
+

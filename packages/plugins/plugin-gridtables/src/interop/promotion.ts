@@ -14,9 +14,9 @@ import { Fragment } from '@milkdown/prose/model'
  */
 export function canPromoteToGfm(gridTable: ProseNode): boolean {
   // Must have gtHead and gtBody
-  let gtHead: ProseNode | null = null
-  let gtBody: ProseNode | null = null
-  let gtFoot: ProseNode | null = null
+  let gtHead: ProseNode | undefined
+  let gtBody: ProseNode | undefined
+  let gtFoot: ProseNode | undefined
 
   gridTable.forEach((child) => {
     if (child.type.name === 'gridTableHead') gtHead = child
@@ -31,10 +31,14 @@ export function canPromoteToGfm(gridTable: ProseNode): boolean {
   if (!gtHead || gtHead.childCount !== 1) return false
   if (!gtBody || gtBody.childCount === 0) return false
 
+  // Store in local const for TypeScript narrowing
+  const head = gtHead
+  const body = gtBody
+
   // Check all rows for compatibility
   const allRows: ProseNode[] = []
-  gtHead.forEach((row) => allRows.push(row))
-  gtBody.forEach((row) => allRows.push(row))
+  head.forEach((row: ProseNode) => allRows.push(row))
+  body.forEach((row: ProseNode) => allRows.push(row))
 
   const firstRowCellCount = allRows[0]?.childCount ?? 0
   if (firstRowCellCount === 0) return false
@@ -82,8 +86,8 @@ export function promoteToGfmTable(
     return null
   }
 
-  let gtHead: ProseNode | null = null
-  let gtBody: ProseNode | null = null
+  let gtHead: ProseNode | undefined
+  let gtBody: ProseNode | undefined
 
   gridTable.forEach((child) => {
     if (child.type.name === 'gridTableHead') gtHead = child
@@ -92,7 +96,11 @@ export function promoteToGfmTable(
 
   if (!gtHead || !gtBody) return null
 
-  const headerRow = gtHead.firstChild
+  // Store in local const for TypeScript narrowing
+  const head = gtHead
+  const body = gtBody
+
+  const headerRow = head.firstChild
   if (!headerRow) return null
 
   // Convert header row
@@ -110,8 +118,8 @@ export function promoteToGfmTable(
 
   // Convert body rows
   const bodyRows: ProseNode[] = []
-  for (let rowIdx = 0; rowIdx < gtBody.childCount; rowIdx++) {
-    const gridRow = gtBody.child(rowIdx)
+  for (let rowIdx = 0; rowIdx < body.childCount; rowIdx++) {
+    const gridRow = body.child(rowIdx)
     const cells: ProseNode[] = []
 
     for (let cellIdx = 0; cellIdx < gridRow.childCount; cellIdx++) {
