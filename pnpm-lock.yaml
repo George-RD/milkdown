@@ -695,6 +695,9 @@ importers:
       '@milkdown/preset-commonmark':
         specifier: workspace:*
         version: link:../preset-commonmark
+      '@milkdown/preset-gfm':
+        specifier: workspace:*
+        version: link:../preset-gfm
 
   packages/plugins/plugin-highlight:
     dependencies:

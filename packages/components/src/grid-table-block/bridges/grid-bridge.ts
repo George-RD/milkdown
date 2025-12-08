@@ -94,6 +94,9 @@ export function createGridCommandBridge(
       // Note: The UI now calls deleteRow() and deleteCol() directly, so this
       // should rarely be called. If it is, we default to row deletion as a
       // safe fallback.
+      console.warn(
+        '[grid-table-block] deleteSelectedCells() is deprecated. Use deleteRow() or deleteCol() instead.'
+      )
       const commands = ctx.get(commandsCtx)
       commands.call(deleteGridRowCommand.key)
     },

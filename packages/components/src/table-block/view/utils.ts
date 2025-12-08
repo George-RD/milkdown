@@ -69,9 +69,9 @@ export function findPointerIndex(
         ? node
         : findParent((n) => cellTypes.includes(n.type.name))($pos)?.node
       const row = findParent((n) => rowTypes.includes(n.type.name))($pos)?.node
-      const table = findParent((n) =>
-        tableTypes.includes(n.type.name)
-      )($pos)?.node
+      const table = findParent((n) => tableTypes.includes(n.type.name))(
+        $pos
+      )?.node
 
       if (!cell || !row || !table) return
       const columnIndex = findNodeIndex(row, cell)
@@ -188,8 +188,7 @@ export function recoveryStateBetweenUpdate(
       })
     } else {
       const rowNode = findParent(
-        (n) =>
-          n.type.name === 'table_row' || n.type.name === 'table_header_row'
+        (n) => n.type.name === 'table_row' || n.type.name === 'table_header_row'
       )($head)
       if (!rowNode) return
       const rowIndex = findNodeIndex(table.node, rowNode.node)
@@ -225,7 +224,7 @@ export function computeColHandlePositionByIndex({
   if (!colHandle) {
     return
   }
-  
+
   const dom = getRelatedDOM(contentWrapperRef, index)
   if (!dom) {
     return
@@ -234,16 +233,15 @@ export function computeColHandlePositionByIndex({
   if (!col) {
     return
   }
-  
+
   // Ensure handle is visible before computing position (floating-ui needs valid dimensions)
   colHandle.dataset.show = 'true'
   // Force a DOM reflow before computePosition reads dimensions.
   // This was empirically necessary: without it, floating-ui receives stale/invalid dimensions
   // (likely because the element was just made visible via dataset.show), resulting in
   // incorrect handle positioning. Accessing offsetHeight forces the browser to recalculate layout.
-  // See: https://floating-ui.com/docs/computePosition#layout-shifts
   void colHandle.offsetHeight
-  
+
   if (before) before(colHandle)
   computePosition(col, colHandle, { placement: 'top' })
     .then(({ x, y }) => {
@@ -254,7 +252,10 @@ export function computeColHandlePositionByIndex({
       if (after) after(colHandle)
     })
     .catch((error) => {
-      console.error('[table-block:computeColHandle] computePosition failed', error)
+      console.error(
+        '[table-block:computeColHandle] computePosition failed',
+        error
+      )
     })
 }
 
@@ -269,7 +270,7 @@ export function computeRowHandlePositionByIndex({
   if (!rowHandle) {
     return
   }
-  
+
   const dom = getRelatedDOM(contentWrapperRef, index)
   if (!dom) {
     return
@@ -278,16 +279,15 @@ export function computeRowHandlePositionByIndex({
   if (!row) {
     return
   }
-  
+
   // Ensure handle is visible before computing position (floating-ui needs valid dimensions)
   rowHandle.dataset.show = 'true'
   // Force a DOM reflow before computePosition reads dimensions.
   // This was empirically necessary: without it, floating-ui receives stale/invalid dimensions
   // (likely because the element was just made visible via dataset.show), resulting in
   // incorrect handle positioning. Accessing offsetHeight forces the browser to recalculate layout.
-  // See: https://floating-ui.com/docs/computePosition#layout-shifts
   void rowHandle.offsetHeight
-  
+
   if (before) before(rowHandle)
   computePosition(row, rowHandle, { placement: 'left' })
     .then(({ x, y }) => {
@@ -298,6 +298,9 @@ export function computeRowHandlePositionByIndex({
       if (after) after(rowHandle)
     })
     .catch((error) => {
-      console.error('[table-block:computeRowHandle] computePosition failed', error)
+      console.error(
+        '[table-block:computeRowHandle] computePosition failed',
+        error
+      )
     })
 }
