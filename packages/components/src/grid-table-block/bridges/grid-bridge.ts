@@ -88,12 +88,14 @@ export function createGridCommandBridge(
       commands.call(moveGridColCommand.key, { from, to, pos: getTablePos() })
     },
 
+    /**
+     * @deprecated Use deleteRow() or deleteCol() instead.
+     * This method is deprecated - for backward compatibility, defaults to row deletion.
+     * Note: The UI now calls deleteRow() and deleteCol() directly, so this
+     * should rarely be called. If it is, we default to row deletion as a
+     * safe fallback.
+     */
     deleteSelectedCells() {
-      // This method is deprecated - use deleteRow() or deleteCol() instead.
-      // For backward compatibility, default to row deletion.
-      // Note: The UI now calls deleteRow() and deleteCol() directly, so this
-      // should rarely be called. If it is, we default to row deletion as a
-      // safe fallback.
       console.warn(
         '[grid-table-block] deleteSelectedCells() is deprecated. Use deleteRow() or deleteCol() instead.'
       )

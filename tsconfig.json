@@ -3,7 +3,6 @@
   "include": [],
   "references": [
     { "path": "./dev" },
-    { "path": "./dev/gridtables-playground" },
     { "path": "./docs" },
     { "path": "./e2e" },
     { "path": "./packages/components" },

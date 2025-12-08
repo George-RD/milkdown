@@ -71,9 +71,9 @@ export const gridTableSchema = $nodeSchema('gridTable', (_ctx) => ({
     runner: (state, node) => {
       state.openNode('gridTable')
       // Group rows by section for markdown output
-      const headRows: typeof node[] = []
-      const bodyRows: typeof node[] = []
-      const footRows: typeof node[] = []
+      const headRows: (typeof node)[] = []
+      const bodyRows: (typeof node)[] = []
+      const footRows: (typeof node)[] = []
 
       node.content.forEach((row) => {
         const section = (row.attrs.section as GridTableSection) || 'body'
@@ -299,9 +299,10 @@ export const gridTableCellSchema = $nodeSchema('gridTableCell', (ctx) => ({
   parseMarkdown: {
     match: (node) => node.type === 'gtCell',
     runner: (state, node, type) => {
-      // Handle inconsistent property naming: remark-gridtables uses camelCase (colSpan, rowSpan),
-      // while some custom parsing or other sources may use lowercase (colspan, rowspan).
-      // We check both to ensure compatibility.
+      // Handle inconsistent property naming:
+      // - remark-gridtables uses camelCase (colSpan, rowSpan)
+      // - markdown-it-gridtables and some legacy/custom parsers may use lowercase (colspan, rowspan)
+      // We check both to ensure compatibility with all known sources.
       const colspan = node.colSpan ?? node.colspan ?? 1
       const rowspan = node.rowSpan ?? node.rowspan ?? 1
       const { align = null, valign = null } = node
