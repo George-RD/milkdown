@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/vitest'
 import type { Node as ProsemirrorNode } from '@milkdown/prose/model'
+import { Fragment, Slice } from '@milkdown/prose/model'
 import { defaultValueCtx, Editor, editorViewCtx } from '@milkdown/core'
 import { commonmark } from '@milkdown/preset-commonmark'
 import { clipboard } from '../../../plugin-clipboard/src'
@@ -39,13 +40,12 @@ describe('Grid Tables Plugin', () => {
     expect(table).toBeTruthy()
 
     if (table) {
-      // Check for table head
-      const thead = table?.querySelector('thead')
-      expect(thead).toBeTruthy()
+      // Check for rows with section attributes (flat structure)
+      const headerRows = table?.querySelectorAll('tr[data-section="head"]')
+      expect(headerRows?.length).toBeGreaterThanOrEqual(1)
 
-      // Check for table body
-      const tbody = table?.querySelector('tbody')
-      expect(tbody).toBeTruthy()
+      const bodyRows = table?.querySelectorAll('tr[data-section="body"]')
+      expect(bodyRows?.length).toBeGreaterThanOrEqual(1)
 
       // Check for proper cell content
       const cells = table?.querySelectorAll('td, th')
@@ -204,11 +204,12 @@ describe('Grid Tables Plugin', () => {
     expect(table).toBeTruthy()
 
     if (table) {
-      const thead = table?.querySelector('thead')
-      expect(thead).toBeTruthy()
+      // Check for rows with section attributes (flat structure)
+      const headerRows = table?.querySelectorAll('tr[data-section="head"]')
+      expect(headerRows?.length).toBeGreaterThanOrEqual(1)
 
-      const tbody = table?.querySelector('tbody')
-      expect(tbody).toBeTruthy()
+      const bodyRows = table?.querySelectorAll('tr[data-section="body"]')
+      expect(bodyRows?.length).toBeGreaterThanOrEqual(1)
 
       // Verify the basic structure
       const cellTexts = Array.from(table.querySelectorAll('td, th')).map(
@@ -342,8 +343,9 @@ describe('Grid Tables Plugin', () => {
     })
 
     let handled = false
+    const emptySlice = new Slice(Fragment.empty, 0, 0)
     view.someProp('handlePaste', (fn) => {
-      if (fn(view, event)) {
+      if (fn(view, event, emptySlice)) {
         handled = true
         return true
       }
@@ -356,19 +358,29 @@ describe('Grid Tables Plugin', () => {
     const table = doc.firstChild
     expect(table?.type.name).toBe('gridTable')
 
-    const head = table?.firstChild
-    expect(head?.type.name).toBe('gridTableHead')
+    // Flat structure: table contains rows directly with section attribute
+    const firstRow = table?.firstChild
+    expect(firstRow?.type.name).toBe('gridTableRow')
+    expect(firstRow?.attrs.section).toBe('head')
 
-    const firstCell = head?.firstChild?.firstChild
+    const firstCell = firstRow?.firstChild
     expect(firstCell?.type.name).toBe('gridTableCell')
     expect(firstCell?.textContent).toContain('Fruit')
-
-    const body = table?.child(1)
-    expect(body?.type.name).toBe('gridTableBody')
-    const bodyCell = body?.firstChild?.firstChild
-    expect(bodyCell?.textContent).toContain('Apple')
     expect(firstCell?.attrs.align).toBe('left')
-    expect(bodyCell?.attrs.align).toBe(null)
+
+    // Find first body row
+    let bodyRow: ProsemirrorNode | null = null
+    table?.forEach((row) => {
+      if (row.attrs.section === 'body' && !bodyRow) {
+        bodyRow = row
+      }
+    })
+    expect(bodyRow).toBeTruthy()
+    if (bodyRow) {
+      const bodyCell = bodyRow.firstChild
+      expect(bodyCell?.textContent).toContain('Apple')
+      expect(bodyCell?.attrs.align).toBe(null)
+    }
   })
 
   it('should respect gfm table parsing when both gfm and grid table plugins are present', async () => {
@@ -404,8 +416,9 @@ describe('Grid Tables Plugin', () => {
     })
 
     let handled = false
+    const emptySlice = new Slice(Fragment.empty, 0, 0)
     view.someProp('handlePaste', (fn) => {
-      if (fn(view, event)) {
+      if (fn(view, event, emptySlice)) {
         handled = true
         return true
       }
@@ -432,10 +445,12 @@ describe('Grid Tables Plugin', () => {
     expect(hasGridTable).toBe(false)
     expect(tableNode).toBeTruthy()
 
-    const headerRow = tableNode?.firstChild
-    expect(headerRow?.type.name).toBe('table_header_row')
-    const headerCell = headerRow?.firstChild
-    expect(headerCell?.textContent).toContain('Alpha')
+    if (tableNode) {
+      const headerRow = tableNode.firstChild
+      expect(headerRow?.type.name).toBe('table_header_row')
+      const headerCell = headerRow?.firstChild
+      expect(headerCell?.textContent).toContain('Alpha')
+    }
   })
 
   it('should upgrade grid-like HTML with spans to gridTable nodes when gfm loads first', async () => {
@@ -466,8 +481,9 @@ describe('Grid Tables Plugin', () => {
     })
 
     let handled = false
+    const emptySlice = new Slice(Fragment.empty, 0, 0)
     targetView.someProp('handlePaste', (fn) => {
-      if (fn(targetView, event)) {
+      if (fn(targetView, event, emptySlice)) {
         handled = true
         return true
       }

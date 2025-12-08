@@ -57,10 +57,10 @@ export const GRID_TABLE_SERIALIZE_TRANSFORMS =
  * {@link registerGridTableSerializeTransform} to inspect or replace tables
  * before the markdown serializer runs.
  */
-export const gridTableSerializeTransformsCtx = $ctx<TableSerializeTransform[]>(
-  [],
-  GRID_TABLE_SERIALIZE_TRANSFORMS
-)
+export const gridTableSerializeTransformsCtx = $ctx<
+  TableSerializeTransform[],
+  typeof GRID_TABLE_SERIALIZE_TRANSFORMS
+>([], GRID_TABLE_SERIALIZE_TRANSFORMS)
 
 withMeta(gridTableSerializeTransformsCtx, {
   displayName: 'Ctx<gridTableSerializeTransforms>',
@@ -160,7 +160,10 @@ const hasAsciiGridContext = (table: HTMLElement): boolean => {
   const MAX_ANCESTOR_DEPTH = 2
   const MAX_SIBLING_HOPS = 4
 
-  const searchSiblings = (node: Element, direction: 'previous' | 'next'): boolean => {
+  const searchSiblings = (
+    node: Element,
+    direction: 'previous' | 'next'
+  ): boolean => {
     let sibling: Node | null =
       direction === 'previous' ? node.previousSibling : node.nextSibling
     let hops = 0
@@ -170,9 +173,7 @@ const hasAsciiGridContext = (table: HTMLElement): boolean => {
         return true
       }
       sibling =
-        direction === 'previous'
-          ? sibling.previousSibling
-          : sibling.nextSibling
+        direction === 'previous' ? sibling.previousSibling : sibling.nextSibling
       hops += 1
     }
 
@@ -182,7 +183,10 @@ const hasAsciiGridContext = (table: HTMLElement): boolean => {
   let current: Element | null = table
   let depth = 0
   while (current && depth <= MAX_ANCESTOR_DEPTH) {
-    if (searchSiblings(current, 'previous') || searchSiblings(current, 'next')) {
+    if (
+      searchSiblings(current, 'previous') ||
+      searchSiblings(current, 'next')
+    ) {
       return true
     }
     current = current.parentElement
@@ -226,7 +230,10 @@ const requiresGridTableHandling = (table: HTMLElement): boolean => {
     minCellCount = Math.min(minCellCount, count)
   })
 
-  if (minCellCount !== Number.POSITIVE_INFINITY && maxCellCount !== minCellCount) {
+  if (
+    minCellCount !== Number.POSITIVE_INFINITY &&
+    maxCellCount !== minCellCount
+  ) {
     return true
   }
 
@@ -278,13 +285,19 @@ export const gridTableClipboardDomTransform: TableDomTransform = ({
         const MAX_ANCESTOR_DEPTH = 2
         const MAX_SIBLING_HOPS = 4
 
-        const findAsciiElements = (node: Element, direction: 'previous' | 'next'): void => {
+        const findAsciiElements = (
+          node: Element,
+          direction: 'previous' | 'next'
+        ): void => {
           let sibling: Node | null =
             direction === 'previous' ? node.previousSibling : node.nextSibling
           let hops = 0
 
           while (sibling && hops < MAX_SIBLING_HOPS) {
-            if (sibling instanceof Element && elementContainsAsciiGrid(sibling)) {
+            if (
+              sibling instanceof Element &&
+              elementContainsAsciiGrid(sibling)
+            ) {
               asciiElementsToRemove.add(sibling)
             }
             sibling =
@@ -372,10 +385,7 @@ withMeta(gridTableClipboardInterop, {
   group: 'GridTable',
 })
 
-const runSerializeTransforms = (
-  ctx: Ctx,
-  doc: ProseNode
-): ProseNode => {
+const runSerializeTransforms = (ctx: Ctx, doc: ProseNode): ProseNode => {
   if (!ctx.isInjected(gridTableSerializeTransformsCtx.key)) return doc
 
   const transforms = ctx.get(gridTableSerializeTransformsCtx.key)

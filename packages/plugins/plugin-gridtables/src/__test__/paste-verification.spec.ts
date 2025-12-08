@@ -6,6 +6,7 @@ import {
   parserCtx,
   serializerCtx,
 } from '@milkdown/core'
+import { Fragment, Slice } from '@milkdown/prose/model'
 import { gfm } from '@milkdown/preset-gfm'
 import { clipboard } from '@milkdown/plugin-clipboard'
 import { commonmark } from '@milkdown/preset-commonmark'
@@ -138,7 +139,8 @@ describe('Paste Path Verification (HTML vs Plain Text)', () => {
     const doc = parser(complexGridTableText)
 
     expect(doc).toBeTruthy()
-    if (typeof doc === 'string') throw new Error('Parser returned string instead of doc')
+    if (typeof doc === 'string')
+      throw new Error('Parser returned string instead of doc')
 
     let gridTableCount = 0
     let gfmTableCount = 0
@@ -256,8 +258,9 @@ describe('Paste Path Verification (HTML vs Plain Text)', () => {
     })
 
     let handled = false
+    const emptySlice = new Slice(Fragment.empty, 0, 0)
     view.someProp('handlePaste', (fn) => {
-      if (fn(view, event)) {
+      if (fn(view, event, emptySlice)) {
         handled = true
         return true
       }
