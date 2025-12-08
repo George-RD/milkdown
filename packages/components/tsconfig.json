@@ -18,6 +18,7 @@
     { "path": "../exception" },
     { "path": "../plugins/plugin-tooltip" },
     { "path": "../plugins/preset-commonmark" },
+    { "path": "../plugins/plugin-gridtables" },
     { "path": "../plugins/preset-gfm" },
     { "path": "../prose" },
     { "path": "../transformer" },

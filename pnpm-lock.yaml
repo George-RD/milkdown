@@ -281,6 +281,9 @@ importers:
       '@milkdown/exception':
         specifier: workspace:*
         version: link:../exception
+      '@milkdown/plugin-gridtables':
+        specifier: workspace:*
+        version: link:../plugins/plugin-gridtables
       '@milkdown/plugin-tooltip':
         specifier: workspace:*
         version: link:../plugins/plugin-tooltip
@@ -692,6 +695,9 @@ importers:
       '@milkdown/preset-commonmark':
         specifier: workspace:*
         version: link:../preset-commonmark
+      '@milkdown/preset-gfm':
+        specifier: workspace:*
+        version: link:../preset-gfm
 
   packages/plugins/plugin-highlight:
     dependencies:

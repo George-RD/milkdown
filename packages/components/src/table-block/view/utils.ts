@@ -15,6 +15,32 @@ function findNodeIndex(parent: Node, child: Node) {
   return -1
 }
 
+/**
+ * Find the cell element at a given logical column index, accounting for colspans.
+ * This is essential for correct handle positioning in tables with merged columns.
+ *
+ * @param row - The table row element to search
+ * @param targetCol - The logical column index (0-based)
+ * @returns The cell element that occupies the target column, or undefined if not found
+ */
+export function findCellAtColumn(
+  row: Element,
+  targetCol: number
+): Element | undefined {
+  let currentCol = 0
+  for (const cell of Array.from(row.children)) {
+    const colspan = parseInt(
+      (cell as HTMLElement).getAttribute('colspan') || '1',
+      10
+    )
+    if (currentCol <= targetCol && targetCol < currentCol + colspan) {
+      return cell
+    }
+    currentCol += colspan
+  }
+  return undefined
+}
+
 export function findPointerIndex(
   event: PointerEvent,
   view?: EditorView
@@ -34,22 +60,41 @@ export function findPointerIndex(
     const node = view.state.doc.nodeAt(pos)
     if (!node) return
 
-    const cellType = ['table_cell', 'table_header']
-    const rowType = ['table_row', 'table_header_row']
+    const detectIndex = (
+      cellTypes: string[],
+      rowTypes: string[],
+      tableTypes: string[]
+    ): CellIndex | undefined => {
+      const cell = cellTypes.includes(node.type.name)
+        ? node
+        : findParent((n) => cellTypes.includes(n.type.name))($pos)?.node
+      const row = findParent((n) => rowTypes.includes(n.type.name))($pos)?.node
+      const table = findParent((n) => tableTypes.includes(n.type.name))(
+        $pos
+      )?.node
 
-    const cell = cellType.includes(node.type.name)
-      ? node
-      : findParent((node) => cellType.includes(node.type.name))($pos)?.node
-    const row = findParent((node) => rowType.includes(node.type.name))(
-      $pos
-    )?.node
-    const table = findParent((node) => node.type.name === 'table')($pos)?.node
-    if (!cell || !row || !table) return
+      if (!cell || !row || !table) return
+      const columnIndex = findNodeIndex(row, cell)
+      const rowIndex = findNodeIndex(table, row)
+      if (rowIndex === -1) return
+      return [rowIndex, columnIndex]
+    }
 
-    const columnIndex = findNodeIndex(row, cell)
-    const rowIndex = findNodeIndex(table, row)
+    const gridIndex = detectIndex(
+      ['gridTableCell'],
+      ['gridTableRow'],
+      ['gridTable']
+    )
+    if (gridIndex) return gridIndex
 
-    return [rowIndex, columnIndex]
+    const gfmIndex = detectIndex(
+      ['table_cell', 'table_header'],
+      ['table_row', 'table_header_row'],
+      ['table']
+    )
+    if (gfmIndex) return gfmIndex
+
+    return undefined
   } catch {
     return undefined
   }
@@ -68,10 +113,11 @@ export function getRelatedDOM(
   const firstRow = rows[0]
   if (!firstRow) return
 
-  const headerCol = firstRow.children[columnIndex]
+  // Find the cell at the logical column index, accounting for colspans
+  const headerCol = findCellAtColumn(firstRow, columnIndex)
   if (!headerCol) return
 
-  const col = row.children[columnIndex]
+  const col = findCellAtColumn(row, columnIndex)
   if (!col) return
 
   return {
@@ -95,6 +141,8 @@ export function recoveryStateBetweenUpdate(
   const table = findTable($from)
   if (!table || table.node !== node) return
 
+  const isGridTable = node.type.name === 'gridTable'
+
   if (selection.isColSelection()) {
     const { $head } = selection
     const colIndex = $head.index($head.depth - 1)
@@ -109,24 +157,52 @@ export function recoveryStateBetweenUpdate(
     })
     return
   }
+
   if (selection.isRowSelection()) {
     const { $head } = selection
-    const rowNode = findParent(
-      (node) =>
-        node.type.name === 'table_row' || node.type.name === 'table_header_row'
-    )($head)
-    if (!rowNode) return
-    const rowIndex = findNodeIndex(table.node, rowNode.node)
-    computeRowHandlePositionByIndex({
-      refs,
-      index: [rowIndex, 0],
-      before: (handleDOM) => {
-        if (rowIndex > 0)
-          handleDOM
-            .querySelector('.button-group')
-            ?.setAttribute('data-show', 'true')
-      },
-    })
+
+    if (isGridTable) {
+      const rowNode = findParent((n) => n.type.name === 'gridTableRow')($head)
+      if (!rowNode) return
+      const tableNode = findParent((n) => n.type.name === 'gridTable')($head)
+      if (!tableNode) return
+
+      const rowIndex = findNodeIndex(tableNode.node, rowNode.node)
+      if (rowIndex === -1) return
+
+      computeRowHandlePositionByIndex({
+        refs,
+        index: [rowIndex, 0],
+        before: (handleDOM) => {
+          const section = rowNode.node.attrs.section as
+            | 'head'
+            | 'body'
+            | 'foot'
+            | undefined
+          if (section !== 'head') {
+            handleDOM
+              .querySelector('.button-group')
+              ?.setAttribute('data-show', 'true')
+          }
+        },
+      })
+    } else {
+      const rowNode = findParent(
+        (n) => n.type.name === 'table_row' || n.type.name === 'table_header_row'
+      )($head)
+      if (!rowNode) return
+      const rowIndex = findNodeIndex(table.node, rowNode.node)
+      computeRowHandlePositionByIndex({
+        refs,
+        index: [rowIndex, 0],
+        before: (handleDOM) => {
+          if (rowIndex > 0)
+            handleDOM
+              .querySelector('.button-group')
+              ?.setAttribute('data-show', 'true')
+        },
+      })
+    }
   }
 }
 
@@ -143,15 +219,29 @@ export function computeColHandlePositionByIndex({
   before,
   after,
 }: ComputeHandlePositionByIndexProps) {
-  const { contentWrapperRef, colHandleRef, hoverIndex } = refs
+  const { contentWrapperRef, colHandleRef } = refs
   const colHandle = colHandleRef.value
-  if (!colHandle) return
+  if (!colHandle) {
+    return
+  }
 
-  hoverIndex.value = index
   const dom = getRelatedDOM(contentWrapperRef, index)
-  if (!dom) return
+  if (!dom) {
+    return
+  }
   const { headerCol: col } = dom
+  if (!col) {
+    return
+  }
+
+  // Ensure handle is visible before computing position (floating-ui needs valid dimensions)
   colHandle.dataset.show = 'true'
+  // Force a DOM reflow before computePosition reads dimensions.
+  // This was empirically necessary: without it, floating-ui receives stale/invalid dimensions
+  // (likely because the element was just made visible via dataset.show), resulting in
+  // incorrect handle positioning. Accessing offsetHeight forces the browser to recalculate layout.
+  void colHandle.offsetHeight
+
   if (before) before(colHandle)
   computePosition(col, colHandle, { placement: 'top' })
     .then(({ x, y }) => {
@@ -161,7 +251,12 @@ export function computeColHandlePositionByIndex({
       })
       if (after) after(colHandle)
     })
-    .catch(console.error)
+    .catch((error) => {
+      console.error(
+        '[table-block:computeColHandle] computePosition failed',
+        error
+      )
+    })
 }
 
 export function computeRowHandlePositionByIndex({
@@ -170,15 +265,29 @@ export function computeRowHandlePositionByIndex({
   before,
   after,
 }: ComputeHandlePositionByIndexProps) {
-  const { contentWrapperRef, rowHandleRef, hoverIndex } = refs
+  const { contentWrapperRef, rowHandleRef } = refs
   const rowHandle = rowHandleRef.value
-  if (!rowHandle) return
+  if (!rowHandle) {
+    return
+  }
 
-  hoverIndex.value = index
   const dom = getRelatedDOM(contentWrapperRef, index)
-  if (!dom) return
+  if (!dom) {
+    return
+  }
   const { row } = dom
+  if (!row) {
+    return
+  }
+
+  // Ensure handle is visible before computing position (floating-ui needs valid dimensions)
   rowHandle.dataset.show = 'true'
+  // Force a DOM reflow before computePosition reads dimensions.
+  // This was empirically necessary: without it, floating-ui receives stale/invalid dimensions
+  // (likely because the element was just made visible via dataset.show), resulting in
+  // incorrect handle positioning. Accessing offsetHeight forces the browser to recalculate layout.
+  void rowHandle.offsetHeight
+
   if (before) before(rowHandle)
   computePosition(row, rowHandle, { placement: 'left' })
     .then(({ x, y }) => {
@@ -188,5 +297,10 @@ export function computeRowHandlePositionByIndex({
       })
       if (after) after(rowHandle)
     })
-    .catch(console.error)
+    .catch((error) => {
+      console.error(
+        '[table-block:computeRowHandle] computePosition failed',
+        error
+      )
+    })
 }

@@ -2,14 +2,11 @@ import type { Ctx } from '@milkdown/ctx'
 
 import { editorViewCtx } from '@milkdown/core'
 
-import type { TableCommandBridge } from '../types'
-import type { Refs } from './types'
+import type { TableCommandBridge } from '../../table-block/types'
+import type { Refs } from '../../table-block/view/types'
 
 /**
- * Hook providing table operations using the command bridge abstraction.
- *
- * This allows the same UI to work with different table implementations
- * (GFM tables, Grid tables) by swapping out the command bridge.
+ * Hook providing grid table operations using the command bridge abstraction.
  */
 export function useOperation(
   refs: Refs,
@@ -101,7 +98,7 @@ export function useOperation(
     bridge.selectRow(rowIndex)
     const buttonGroup =
       rowHandleRef.value?.querySelector<HTMLElement>('.button-group')
-    if (buttonGroup && rowIndex > 0)
+    if (buttonGroup)
       buttonGroup.dataset.show =
         buttonGroup.dataset.show === 'true' ? 'false' : 'true'
   }
@@ -134,6 +131,35 @@ export function useOperation(
       focusEditor()
     }
 
+  // Grid-table specific operations
+  const onVAlign =
+    (direction: 'top' | 'middle' | 'bottom') => (e: PointerEvent) => {
+      if (!bridge?.setVAlign || !isEditable()) return
+
+      e.preventDefault()
+      e.stopPropagation()
+      bridge.setVAlign(direction)
+      focusEditor()
+    }
+
+  const onMergeCell = (e: PointerEvent) => {
+    if (!bridge?.mergeCellRight || !isEditable()) return
+
+    e.preventDefault()
+    e.stopPropagation()
+    bridge.mergeCellRight()
+    focusEditor()
+  }
+
+  const onSplitCell = (e: PointerEvent) => {
+    if (!bridge?.splitCell || !isEditable()) return
+
+    e.preventDefault()
+    e.stopPropagation()
+    bridge.splitCell()
+    focusEditor()
+  }
+
   return {
     onAddRow,
     onAddCol,
@@ -142,5 +168,10 @@ export function useOperation(
     deleteRow,
     deleteCol,
     onAlign,
+    // Grid-specific
+    onVAlign,
+    onMergeCell,
+    onSplitCell,
   }
 }
+

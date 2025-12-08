@@ -1,14 +1,9 @@
 import type { Ctx } from '@milkdown/ctx'
 
-import { commandsCtx, editorViewCtx } from '@milkdown/core'
-import {
-  moveColCommand,
-  moveRowCommand,
-  selectColCommand,
-  selectRowCommand,
-} from '@milkdown/preset-gfm'
+import { editorViewCtx } from '@milkdown/core'
 import { onMounted, onUnmounted } from 'vue'
 
+import type { TableCommandBridge } from '../types'
 import type { CellIndex, Refs } from './types'
 
 import {
@@ -23,8 +18,8 @@ import {
 
 export function useDragHandlers(
   refs: Refs,
-  ctx?: Ctx,
-  getPos?: () => number | undefined
+  ctx: Ctx | undefined,
+  bridge: TableCommandBridge | undefined
 ) {
   const { dragPreviewRef, yLineHandleRef, xLineHandleRef, dragInfo } = refs
 
@@ -54,7 +49,7 @@ export function useDragHandlers(
     if (!xHandle) return
     const info = dragInfo.value
     if (!info) return
-    if (!ctx) return
+    if (!bridge) return
     if (preview.dataset.show === 'false') return
     const colHandle = refs.colHandleRef.value
     if (!colHandle) return
@@ -66,29 +61,17 @@ export function useDragHandlers(
 
     if (info.startIndex === info.endIndex) return
 
-    const commands = ctx.get(commandsCtx)
-    const payload = {
-      from: info.startIndex,
-      to: info.endIndex,
-      pos: (getPos?.() ?? 0) + 1,
-    }
     if (info.type === 'col') {
-      commands.call(selectColCommand.key, {
-        pos: payload.pos,
-        index: info.startIndex,
-      })
-      commands.call(moveColCommand.key, payload)
+      bridge.selectCol(info.startIndex)
+      bridge.moveCol(info.startIndex, info.endIndex)
       const index: CellIndex = [0, info.endIndex]
       computeColHandlePositionByIndex({
         refs,
         index,
       })
     } else {
-      commands.call(selectRowCommand.key, {
-        pos: payload.pos,
-        index: info.startIndex,
-      })
-      commands.call(moveRowCommand.key, payload)
+      bridge.selectRow(info.startIndex)
+      bridge.moveRow(info.startIndex, info.endIndex)
       const index: CellIndex = [info.endIndex, 0]
       computeRowHandlePositionByIndex({
         refs,
@@ -96,9 +79,11 @@ export function useDragHandlers(
       })
     }
 
-    requestAnimationFrame(() => {
-      ctx.get(editorViewCtx).focus()
-    })
+    if (ctx) {
+      requestAnimationFrame(() => {
+        ctx.get(editorViewCtx).focus()
+      })
+    }
   }
   const onDragOver = createDragOverHandler(refs)
 

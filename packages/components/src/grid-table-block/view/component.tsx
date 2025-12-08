@@ -4,36 +4,43 @@ import type { EditorView } from '@milkdown/prose/view'
 
 import {
   defineComponent,
-  ref,
-  type VNodeRef,
+  Fragment,
   h,
   onMounted,
+  ref,
   type Ref,
+  type VNodeRef,
 } from 'vue'
 
-import type { TableBlockConfig } from '../config'
-import type { TableCommandBridge } from '../types'
-import type { CellIndex, DragInfo, Refs } from './types'
+// @ts-expect-error - h and Fragment are used by JSX with jsx: "preserve", but TypeScript doesn't detect this
+// The following variable is intentionally defined to suppress TypeScript errors when using JSX with `jsx: "preserve"` in tsconfig.
+// TypeScript does not detect usage of `h` and `Fragment` in JSX unless they are explicitly referenced, which can cause type errors.
+// By defining `_jsxRuntime`, we ensure that TypeScript recognizes these imports for JSX transformation, even though the variable is not used directly.
+// See: https://github.com/microsoft/TypeScript/issues/37582 for more details.
+// If you change the JSX runtime or TypeScript configuration, you may be able to remove this workaround.
+const _jsxRuntime = { h, Fragment }
+
+import type { TableCommandBridge } from '../../table-block/types'
+import type { CellIndex, DragInfo, Refs } from '../../table-block/view/types'
+import type { GridTableBlockConfig } from '../config'
 
 import { Icon } from '../../__internal__/components/icon'
+import { usePointerHandlers } from '../../table-block/view/pointer'
+import { recoveryStateBetweenUpdate } from '../../table-block/view/utils'
 import { useDragHandlers } from './drag'
 import { useOperation } from './operation'
-import { usePointerHandlers } from './pointer'
-import { recoveryStateBetweenUpdate } from './utils'
 
-type TableBlockProps = {
+type GridTableBlockProps = {
   view: EditorView
   ctx: Ctx
   getPos: () => number | undefined
-  config: TableBlockConfig
+  config: GridTableBlockConfig
   onMount: (div: Element) => void
   node: Ref<Node>
   bridge: TableCommandBridge
 }
 
-h
-
-export const TableBlock = defineComponent<TableBlockProps>({
+export const GridTableBlock = defineComponent<GridTableBlockProps>({
   props: {
     view: {
       type: Object,
@@ -98,7 +105,9 @@ export const TableBlock = defineComponent<TableBlockProps>({
       dragInfo,
     }
 
-    const { pointerLeave, pointerMove } = usePointerHandlers(refs, view)
+    const { pointerLeave, pointerMove } = usePointerHandlers(refs, view, {
+      allowHeaderRowInsertion: true,
+    })
     const { dragRow, dragCol } = useDragHandlers(refs, ctx, bridge)
     const {
       onAddRow,
@@ -108,16 +117,21 @@ export const TableBlock = defineComponent<TableBlockProps>({
       deleteRow,
       deleteCol,
       onAlign,
+      onVAlign,
+      onMergeCell,
+      onSplitCell,
     } = useOperation(refs, ctx, bridge)
 
     onMounted(() => {
       requestAnimationFrame(() => {
-        // This is a wordaround to keep the popover open when click the select col/row button
         if (view.editable) recoveryStateBetweenUpdate(refs, view, node.value)
       })
     })
 
     return () => {
+      const showVAlign = config.showVAlignControls && bridge.setVAlign
+      const showMerge = config.showMergeControls && bridge.mergeCellRight
+
       return (
         <div
           onDragstart={(e) => e.preventDefault()}
@@ -130,6 +144,16 @@ export const TableBlock = defineComponent<TableBlockProps>({
           onPointerleave={(e) => {
             e.stopPropagation() // Prevent grid table plugin hover handlers
             pointerLeave()
+          }}
+          onMouseover={(e) => {
+            // Stop mouseover events from reaching the grid table plugin's handlers
+            // This prevents conflicting state updates that cause re-renders
+            e.stopPropagation()
+          }}
+          onMouseout={(e) => {
+            // Stop mouseout events from reaching the grid table plugin's handlers
+            // This prevents conflicting state updates that cause re-renders
+            e.stopPropagation()
           }}
         >
           <button
@@ -151,6 +175,7 @@ export const TableBlock = defineComponent<TableBlockProps>({
               class="button-group"
               onPointermove={(e: PointerEvent) => e.stopPropagation()}
             >
+              {/* Horizontal alignment */}
               <button type="button" onPointerdown={onAlign('left')}>
                 <Icon icon={config.renderButton('align_col_left')} />
               </button>
@@ -160,6 +185,31 @@ export const TableBlock = defineComponent<TableBlockProps>({
               <button type="button" onPointerdown={onAlign('right')}>
                 <Icon icon={config.renderButton('align_col_right')} />
               </button>
+              {/* Vertical alignment (grid-specific) */}
+              {showVAlign && (
+                <>
+                  <button type="button" onPointerdown={onVAlign('top')}>
+                    <Icon icon={config.renderButton('align_col_top')} />
+                  </button>
+                  <button type="button" onPointerdown={onVAlign('middle')}>
+                    <Icon icon={config.renderButton('align_col_middle')} />
+                  </button>
+                  <button type="button" onPointerdown={onVAlign('bottom')}>
+                    <Icon icon={config.renderButton('align_col_bottom')} />
+                  </button>
+                </>
+              )}
+              {/* Merge/Split (grid-specific) */}
+              {showMerge && (
+                <>
+                  <button type="button" onPointerdown={onMergeCell}>
+                    <Icon icon={config.renderButton('merge_cell')} />
+                  </button>
+                  <button type="button" onPointerdown={onSplitCell}>
+                    <Icon icon={config.renderButton('split_cell')} />
+                  </button>
+                </>
+              )}
               <button type="button" onPointerdown={deleteCol}>
                 <Icon icon={config.renderButton('delete_col')} />
               </button>
@@ -233,3 +283,4 @@ export const TableBlock = defineComponent<TableBlockProps>({
     }
   },
 })
+

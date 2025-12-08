@@ -15,6 +15,7 @@ import { $view } from '@milkdown/utils'
 import { createApp, shallowRef, type App, type ShallowRef } from 'vue'
 
 import { withMeta } from '../../__internal__/meta'
+import { createGfmCommandBridge } from '../bridges'
 import { tableBlockConfig } from '../config'
 import { TableBlock } from './component'
 
@@ -40,6 +41,9 @@ export class TableNodeView implements NodeView {
     contentDOM.classList.add('content-dom')
     this.nodeRef = shallowRef(node)
 
+    // Create the command bridge for GFM tables
+    const bridge = createGfmCommandBridge(ctx, getPos)
+
     const app = createApp(TableBlock, {
       view,
       ctx,
@@ -49,6 +53,7 @@ export class TableNodeView implements NodeView {
         div.appendChild(contentDOM)
       },
       node: this.nodeRef,
+      bridge,
     })
     app.mount(dom)
     this.app = app

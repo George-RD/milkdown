@@ -18,7 +18,9 @@
     { "path": "../../core" },
     { "path": "../../ctx" },
     { "path": "../../prose" },
+    { "path": "../../utils" },
     { "path": "../../transformer" },
-    { "path": "../../utils" }
+    { "path": "../plugin-clipboard" },
+    { "path": "../plugin-slash" }
   ]
 }

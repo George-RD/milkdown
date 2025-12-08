@@ -21,51 +21,38 @@
 import type { SliceType } from '@milkdown/ctx'
 import type { $Ctx, $Prose } from '@milkdown/utils'
 
-import { remarkGridTables } from './remark/wrapper'
-import { remarkGridTablesNormalizeInline } from './remark/normalize-inline'
-
-import {
-  gridTableAttr,
-  gridTableBodyAttr,
-  gridTableBodySchema,
-  gridTableCellAttr,
-  gridTableCellSchema,
-  gridTableFootAttr,
-  gridTableFootSchema,
-  gridTableHeadAttr,
-  gridTableHeadSchema,
-  gridTableRowAttr,
-  gridTableRowSchema,
-  gridTableSchema,
-} from './schema'
 import { gridTableCommands } from './commands'
-import { gridTableKeymap } from './keymap'
-import {
-  gridTableProseMirrorPlugins,
-  gridTablePluginConfig,
-  gridTableProseMirrorPlugin,
-} from './prosemirror/plugin'
 import {
   gridTableDomTransformsCtx,
   gridTableClipboardInterop,
   gridTableSerializeTransformsCtx,
   gridTableSerializerInterop,
 } from './interop'
+import { gridTableKeymap } from './keymap'
+import {
+  gridTableProseMirrorPlugins,
+  gridTablePluginConfig,
+  gridTableProseMirrorPlugin,
+} from './prosemirror/plugin'
+import { remarkGridTablesNormalizeInline } from './remark/normalize-inline'
+import { remarkGridTables } from './remark/wrapper'
+import {
+  gridTableAttr,
+  gridTableCellAttr,
+  gridTableCellSchema,
+  gridTableRowAttr,
+  gridTableRowSchema,
+  gridTableSchema,
+} from './schema'
 
 /// Export schema types for external use
-export type { GridTableAlign, GridTableVAlign } from './schema'
+export type { GridTableAlign, GridTableVAlign, GridTableSection } from './schema'
 
 /// Export all schema components
 export {
   gridTableAttr,
-  gridTableBodyAttr,
-  gridTableBodySchema,
   gridTableCellAttr,
   gridTableCellSchema,
-  gridTableFootAttr,
-  gridTableFootSchema,
-  gridTableHeadAttr,
-  gridTableHeadSchema,
   gridTableRowAttr,
   gridTableRowSchema,
   gridTableSchema,
@@ -87,6 +74,10 @@ export {
   setGridCellVAlignCommand,
   mergeGridCellRightCommand,
   splitGridCellCommand,
+  selectGridRowCommand,
+  selectGridColCommand,
+  moveGridRowCommand,
+  moveGridColCommand,
   isInGridTable,
   createGridTable,
 } from './commands'
@@ -98,6 +89,7 @@ export {
   gridTableProseMirrorPlugins,
   gridTablePluginConfig,
 } from './prosemirror/plugin'
+export { gridTableEditingPlugin } from './prosemirror/table-editing-compat'
 export {
   gridTableDomTransformsCtx,
   gridTableClipboardInterop,
@@ -132,17 +124,11 @@ export const gridTables = [
 
   // HTML attributes
   gridTableAttr,
-  gridTableHeadAttr,
-  gridTableBodyAttr,
-  gridTableFootAttr,
   gridTableRowAttr,
   gridTableCellAttr,
 
-  // Node schemas
+  // Node schemas (flat structure: table -> row -> cell)
   gridTableSchema,
-  gridTableHeadSchema,
-  gridTableBodySchema,
-  gridTableFootSchema,
   gridTableRowSchema,
   gridTableCellSchema,
 
@@ -154,6 +140,11 @@ export const gridTables = [
 
   // ProseMirror plugins for enhanced functionality
   gridTableProseMirrorPlugins,
+
+  // NOTE: gridTableEditingPlugin is NOT included by default because:
+  // - If using GFM preset, tableEditingPlugin is already included
+  // - Including it twice causes "Adding different instances of keyed plugin" error
+  // - Users can add gridTableEditingPlugin explicitly if using gridTables without GFM
 ].flat() as GridTablesPlugin
 
 gridTables.key = gridTablePluginConfig.key
